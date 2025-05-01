@@ -15,14 +15,18 @@ services:
         target: /qdrant/config/production.yaml
     volumes:
       - ./qdrant_data:/qdrant/storage
+
   app:
+    container_name: viz-rs
     build:
       context: ./service
       target: runtime
     environment:
-      - PORT=80
+     - PORT=80
+    expose:
+      - 3000
     ports:
-      - "127.0.0.1:8080:3011"
+      - "3000:3000"
 
 
 
