@@ -10,21 +10,16 @@
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentHistory24Regular from '~icons/fluent/history-24-regular';
 	import FluentImage24Regular from '~icons/fluent/image-24-regular';
-	import FluentVideo24Regular from '~icons/fluent/video-24-regular';
 	import type { SearchResult } from '$lib/SearchResult';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
 	import DateFilter from '$lib/component/DateFilter.svelte';
-	import TabButton from '$lib/component/TabButton.svelte';
 	import TagsInput from '$lib/component/TagsInput.svelte';
 	import ImageUpload from '$lib/component/ImageUpload.svelte';
-
-	// History entry interface
 
 	let { form }: PageProps = $props();
 	let dragActive = $state(false);
 	let isLoading = $state(false);
 	let fileInput: HTMLInputElement;
-	let videoInput: HTMLInputElement;
 	let tags = $state<string[]>([]);
 	let tagInput = $state('');
 	let tagInputElement: HTMLInputElement;
@@ -34,7 +29,10 @@
 	let endDate = $state('');
 
 	// Tab state
-	let activeTab = $state<'image' | 'video' | 'tags'>('image');
+	let activeTab = $state<'image' | 'tags'>('image');
+
+	// Add reactive state for selected file
+	let selectedFile = $state<File | null>(null);
 
 	let dialog: HTMLDialogElement | undefined = $state();
 	let details: SearchResult | null = $state(null);
@@ -60,11 +58,7 @@
 	}
 
 	// Save search results to history
-	async function saveToHistory(
-		results: SearchResult[],
-		imageFileName?: string,
-		videoFileName?: string
-	) {
+	async function saveToHistory(results: SearchResult[], imageFileName?: string) {
 		if (!browser || results.length === 0) return;
 
 		try {
@@ -84,8 +78,7 @@
 					tags: [...tags],
 					startDate,
 					endDate,
-					imageFileName,
-					videoFileName
+					imageFileName
 				}
 			};
 
@@ -167,10 +160,9 @@
 	};
 
 	function handleFileChange(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (input.files?.[0] && input.form) {
-			input.form.requestSubmit();
-		}
+		// Update the selected file state immediately
+		const target = event.target as HTMLInputElement;
+		selectedFile = target.files?.[0] || null;
 	}
 
 	function handleDrag(e: DragEvent) {
@@ -187,21 +179,15 @@
 		if (e.dataTransfer?.files?.[0]) {
 			const dt = new DataTransfer();
 			dt.items.add(e.dataTransfer.files[0]);
-			const targetInput = activeTab === 'video' ? videoInput : fileInput;
-			targetInput.files = dt.files;
-			targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+			fileInput.files = dt.files;
+			// Update selected file state immediately
+			selectedFile = e.dataTransfer.files[0];
 		}
 	}
 
 	function initiateImageUpload() {
 		if (!isLoading) {
 			fileInput.click();
-		}
-	}
-
-	function initiateVideoUpload() {
-		if (!isLoading) {
-			videoInput.click();
 		}
 	}
 
@@ -229,19 +215,6 @@
 		}
 	}
 
-	// Clear current file selection
-	function clearImage() {
-		if (fileInput) {
-			fileInput.value = '';
-		}
-	}
-
-	function clearVideo() {
-		if (videoInput) {
-			videoInput.value = '';
-		}
-	}
-
 	// Reactive status
 	const uploadStatus = $derived(
 		isLoading
@@ -253,16 +226,15 @@
 					: 'idle'
 	);
 
-	const hasImage = $derived(fileInput?.files?.[0]);
-	const hasVideo = $derived(videoInput?.files?.[0]);
+	const hasImage = $derived(!!selectedFile);
+	const selectedFileName = $derived(selectedFile?.name || '');
 	const displayResults = $derived(form?.data || []);
 
 	// Save to history when new results arrive
 	$effect(() => {
 		if (form?.data && form.data.length > 0 && !isLoading) {
-			const imageFileName = fileInput?.files?.[0]?.name;
-			const videoFileName = videoInput?.files?.[0]?.name;
-			saveToHistory(form.data as SearchResult[], imageFileName, videoFileName);
+			const imageFileName = selectedFile?.name;
+			saveToHistory(form.data as SearchResult[], imageFileName);
 		}
 	});
 </script>
@@ -280,7 +252,7 @@
 <div class="bg-base-100 min-h-screen">
 	<!-- Compact Header -->
 	<div class="bg-base-100/95 border-base-200 sticky top-0 z-10 border-b backdrop-blur-sm">
-		<div class="container mx-auto max-w-7xl px-6 py-2">
+		<div class="container mx-auto max-w-7xl px-4 py-2">
 			<form
 				method="POST"
 				enctype="multipart/form-data"
@@ -293,111 +265,81 @@
 					};
 				}}
 			>
-				<div class="bg-base-50 border-base-200 rounded-lg border">
-					<div class="grid grid-cols-1 gap-0 lg:grid-cols-5">
-						<!-- Left Tabs (Vertical) - Much Smaller -->
-						<div class="border-base-200 flex flex-row border-r lg:col-span-1 lg:w-12 lg:flex-col">
-							<TabButton
-								active={activeTab === 'image'}
-								onclick={() => (activeTab = 'image')}
-								icon={FluentImage24Regular}
-								title="Image Search"
-							/>
-							<TabButton
-								active={activeTab === 'video'}
-								onclick={() => (activeTab = 'video')}
-								icon={FluentVideo24Regular}
-								title="Video Search"
-							/>
-							<TabButton
-								active={activeTab === 'tags'}
-								onclick={() => (activeTab = 'tags')}
-								icon={FluentTag24Regular}
-								title="Tag Search"
-							/>
-
+				<div class="flex flex-row">
+					<!-- Left Tabs (Vertical) with DaisyUI lifted styling -->
+					<div class="border-base-200 flex flex-row">
+						<div class="tabs tabs-lifted tabs-lg flex-col lg:h-full">
 							<button
 								type="button"
-								onclick={goToHistory}
-								class="btn btn-secondary btn-square btn-sm mt-auto p-1"
-								title="Search History"
+								class={`tab ${activeTab === 'image' ? 'tab-active' : ''}`}
+								onclick={() => (activeTab = 'image')}
+								title="Image Search"
 							>
-								<FluentHistory24Regular class="h-4 w-4" />
+								<FluentImage24Regular class="h-5 w-5" />
+							</button>
+							<button
+								type="button"
+								class={`tab ${activeTab === 'tags' ? 'tab-active' : ''}`}
+								onclick={() => (activeTab = 'tags')}
+								title="Tag Search"
+							>
+								<FluentTag24Regular class="h-5 w-5" />
 							</button>
 						</div>
 
-						<!-- Main Content Area -->
-						<div class="flex min-h-36 items-center p-4 lg:col-span-3">
-							{#if activeTab === 'image'}
-								<ImageUpload
-									bind:fileInput
-									{isLoading}
-									{uploadStatus}
-									{dragActive}
-									hasFile={hasImage}
-									error={form?.error}
-									accept="image/*"
-									uploadText="Upload image to search"
-									dragText="Drop image here"
-									onInitiateUpload={initiateImageUpload}
-									onFileChange={handleFileChange}
-									onDrag={handleDrag}
-									onDrop={handleDrop}
-									onClear={clearImage}
-								/>
-							{:else if activeTab === 'video'}
-								<input
-									bind:this={videoInput}
-									type="file"
-									name="video"
-									accept="video/*"
-									disabled={isLoading}
-									onchange={handleFileChange}
-									class="sr-only"
-								/>
-								<ImageUpload
-									bind:fileInput={videoInput}
-									{isLoading}
-									{uploadStatus}
-									{dragActive}
-									hasFile={hasVideo}
-									error={form?.error}
-									accept="video/*"
-									uploadText="Upload video to search"
-									dragText="Drop video here"
-									onInitiateUpload={initiateVideoUpload}
-									onFileChange={handleFileChange}
-									onDrag={handleDrag}
-									onDrop={handleDrop}
-									onClear={clearVideo}
-								/>
-							{:else}
-								<TagsInput
-									{tags}
-									bind:tagInput
-									bind:tagInputElement
-									onAddTag={addTag}
-									onRemoveTag={removeTag}
-									onTagKeydown={handleTagKeydown}
-								/>
-							{/if}
-						</div>
+						<button
+							type="button"
+							onclick={goToHistory}
+							class="btn btn-secondary btn-square btn-sm mt-auto p-1"
+							title="Search History"
+						>
+							<FluentHistory24Regular class="h-4 w-4" />
+						</button>
+					</div>
 
-						<!-- Sidebar: Filters + Actions -->
-						<div class="border-base-200 space-y-3 border-l p-4 lg:col-span-1">
-							<DateFilter bind:startDate bind:endDate />
+					<!-- Main Content Area -->
+					<div class="flex flex-col items-center">
+						{#if activeTab === 'image'}
+							<ImageUpload
+								bind:fileInput
+								{isLoading}
+								{uploadStatus}
+								{dragActive}
+								error={form?.error}
+								accept="image/*"
+								uploadText={selectedFileName || 'Upload image to search'}
+								dragText="Drop image here"
+								onInitiateUpload={initiateImageUpload}
+								onFileChange={handleFileChange}
+								onDrag={handleDrag}
+								onDrop={handleDrop}
+							/>
+						{:else}
+							<TagsInput
+								{tags}
+								bind:tagInput
+								bind:tagInputElement
+								onAddTag={addTag}
+								onRemoveTag={removeTag}
+								onTagKeydown={handleTagKeydown}
+							/>
+						{/if}
+					</div>
 
-							<!-- Action Buttons -->
-							<div class="space-y-1">
-								<button
-									type="submit"
-									disabled={isLoading}
-									class="btn btn-primary btn-sm w-full gap-1"
-								>
-									<FluentSearch24Regular class="h-3 w-3" />
-									Search
-								</button>
-							</div>
+					<!-- Sidebar: Filters + Actions -->
+					<div class="border-base-200 space-y-3 border-l p-4 lg:col-span-1">
+						<DateFilter bind:startDate bind:endDate />
+
+						<!-- Action Buttons -->
+						<div class="space-y-1">
+							<button
+								type="submit"
+								disabled={isLoading}
+								class="btn btn-primary btn-sm w-full gap-1"
+							>
+								<FluentSearch24Regular class="h-3 w-3" />
+								Search
+							</button>
 						</div>
 					</div>
 				</div>

@@ -9,7 +9,7 @@
 		isLoading: boolean;
 		uploadStatus: string;
 		dragActive: boolean;
-		hasFile: boolean;
+
 		error?: string;
 		accept: string;
 		uploadText: string;
@@ -18,7 +18,6 @@
 		onFileChange: (event: Event) => void;
 		onDrag: (e: DragEvent) => void;
 		onDrop: (e: DragEvent) => void;
-		onClear: () => void;
 	}
 
 	let {
@@ -26,7 +25,6 @@
 		isLoading,
 		uploadStatus,
 		dragActive,
-		hasFile,
 		error,
 		accept,
 		uploadText,
@@ -34,8 +32,7 @@
 		onInitiateUpload,
 		onFileChange,
 		onDrag,
-		onDrop,
-		onClear
+		onDrop
 	}: Props = $props();
 </script>
 
@@ -104,19 +101,6 @@
 					</p>
 				{/if}
 			</div>
-
-			{#if hasFile && !isLoading}
-				<button
-					type="button"
-					onclick={(e) => {
-						e.stopPropagation();
-						onClear();
-					}}
-					class="btn btn-ghost btn-xs"
-				>
-					Clear
-				</button>
-			{/if}
 		</div>
 	</div>
 </div>

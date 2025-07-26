@@ -107,24 +107,23 @@
 			onerror={handleImageError}
 		/>
 
-		<!-- Similarity Badge -->
-		<div class="absolute top-2 right-2">
+		<!-- Message ID on hover -->
+		<div
+			class=" text-xs font-medium opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+		>
+			<div
+				class="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-1 text-white backdrop-blur-sm"
+			>
+				#{result.msg_id}
+			</div>
+
 			<div
 				class="
-				rounded-full px-2 py-1 text-xs font-medium backdrop-blur-sm
+				absolute top-2 right-2 rounded-full px-2 py-1 backdrop-blur-sm
 				text-{similarityInfo.color} {similarityInfo.bgColor} border {similarityInfo.borderColor}
 			"
 			>
 				{Math.round(result.similarity * 100)}%
-			</div>
-		</div>
-
-		<!-- Message ID on hover -->
-		<div
-			class="absolute bottom-2 left-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-		>
-			<div class="rounded bg-black/60 px-2 py-1 font-mono text-xs text-white backdrop-blur-sm">
-				#{result.msg_id}
 			</div>
 		</div>
 	</div>

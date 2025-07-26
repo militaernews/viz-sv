@@ -1,6 +1,5 @@
 <script lang="ts">
 	import FluentTag24Regular from '~icons/fluent/tag-24-regular';
-
 	interface Props {
 		tags: string[];
 		tagInput: string;
@@ -9,7 +8,6 @@
 		onRemoveTag: (tag: string) => void;
 		onTagKeydown: (e: KeyboardEvent) => void;
 	}
-
 	let {
 		tags,
 		tagInput = $bindable(),
@@ -20,9 +18,9 @@
 	}: Props = $props();
 </script>
 
-<div class="w-full space-y-2">
+<div class="w-full">
 	<div
-		class="border-base-300 bg-base-100 focus-within:border-primary flex min-h-[100px] flex-wrap items-start gap-2 rounded-lg border-2 p-3"
+		class="border-base-300 bg-base-100 focus-within:border-primary flex min-h-[40px] flex-wrap items-center gap-2 rounded-lg border-2 p-2"
 	>
 		{#each tags as tag}
 			<span
@@ -39,20 +37,18 @@
 			</span>
 		{/each}
 
-		{#if tags.length === 0}
-			<div class="w-full py-2 text-center">
-				<FluentTag24Regular class="text-base-content/30 mx-auto mb-1 h-6 w-6" />
-				<p class="text-base-content/60 text-xs">Add tags to search</p>
-			</div>
-		{/if}
+		<div class="flex min-w-0 flex-1 items-center gap-2">
+			{#if tags.length === 0}
+				<FluentTag24Regular class="text-base-content/30 h-4 w-4 flex-shrink-0" />
+			{/if}
+			<input
+				bind:this={tagInputElement}
+				bind:value={tagInput}
+				onkeydown={onTagKeydown}
+				onblur={onAddTag}
+				placeholder={tags.length === 0 ? 'Add tags to search...' : 'Add tag...'}
+				class="placeholder:text-base-content/60 min-w-0 flex-1 border-none bg-transparent text-sm outline-none"
+			/>
+		</div>
 	</div>
-
-	<input
-		bind:this={tagInputElement}
-		bind:value={tagInput}
-		onkeydown={onTagKeydown}
-		onblur={onAddTag}
-		placeholder="Type tags and press Enter..."
-		class="input input-bordered input-sm w-full"
-	/>
 </div>

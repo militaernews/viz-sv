@@ -18,4 +18,4 @@ export type Pathname = "/" | "/history" | "/privacy-policy";
 
 export type ResolvedPathname = `${"" | `/${string}`}${Pathname}`;
 
-export type Asset = "/favicon.png" | "/placeholder.svg" | "/test.jpg";
+export type Asset = "/favicon.png" | "/placeholder.svg";

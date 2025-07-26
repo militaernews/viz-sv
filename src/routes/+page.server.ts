@@ -30,7 +30,7 @@ export const actions = {
 
 			console.log('Posting search request...');
 
-			const response = await fetch('http://localhost:3000/search', {
+			const response = await fetch('http://localhost:3000/search/images', {
 				method: 'POST',
 				body
 			});
