@@ -1,0 +1,1 @@
+import"../chunks/NZTpNUN0.js";import{f as t,s as e,a as n,c as i,r as c}from"../chunks/oNtRZf3p.js";var m=t('<div class=" container mx-auto h-screen max-w-3xl"><!></div>');function l(o,r){var a=m(),s=i(a);e(s,()=>r.children),c(a),n(o,a)}export{l as component};
