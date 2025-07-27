@@ -3,13 +3,14 @@ import type { Actions, PageServerLoad } from './$types';
 import type { TagSearchRequest } from '$lib/TagSearchRequest';
 import type { ImageSearchParams } from '$lib/ImageSearchParams';
 import type { MetaResponse } from '$lib/MetaResponse';
-import { searchFormSchema, type SearchFormSchema } from './schema';
-import { superValidate } from 'sveltekit-superforms/server';
+import { searchFormSchema } from './schema';
+import { message, superValidate } from 'sveltekit-superforms/server';
 
 import { valibot } from 'sveltekit-superforms/adapters';
+import type { SearchResult } from '$lib/SearchResult';
 
 export const load: PageServerLoad = async () => {
-	let collections: MetaResponse = {};
+	let meta: MetaResponse;
 
 	try {
 		// Fetch available collections from the meta endpoint
@@ -17,9 +18,7 @@ export const load: PageServerLoad = async () => {
 		const response = await fetch('http://localhost:3000/meta');
 
 		if (response.ok) {
-			const meta: MetaResponse = await response.json();
-
-			collections = meta;
+			meta = await response.json();
 		}
 	} catch (error) {
 		console.error('Failed to fetch collections:', error);
@@ -27,7 +26,7 @@ export const load: PageServerLoad = async () => {
 
 	const form = await superValidate(valibot(searchFormSchema));
 
-	return { form, collections };
+	return { form, meta, searchResults: [] };
 };
 
 export const actions = {
@@ -119,27 +118,23 @@ export const actions = {
 				});
 			}
 
-			const data = await response.json();
+			const data: SearchResult[] = await response.json();
+			console.log('Search results received:', data.length, 'items');
 
-			return {
+			return message(form, {
 				success: true,
 
-				data: data,
+				searchResults: data,
 
 				searchParams: {
 					searchType: form.data.searchType,
-
 					imageFileName: form.data.image?.name || '',
-
 					tags: form.data.tags,
-
 					startDate: form.data.startDate || '',
-
 					endDate: form.data.endDate || '',
-
 					collection: form.data.collection
 				}
-			};
+			});
 		} catch (error) {
 			console.error('Search error:', error);
 

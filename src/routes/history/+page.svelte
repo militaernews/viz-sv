@@ -109,11 +109,6 @@
 		dialog?.showModal();
 	}
 
-	// Go back to main search
-	function goBack() {
-		window.location.href = '/';
-	}
-
 	// Load history on mount
 	$effect(() => {
 		loadHistory();
@@ -143,10 +138,10 @@
 		<div class="container mx-auto max-w-7xl px-4 py-4">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-4">
-					<button onclick={goBack} class="btn btn-ghost gap-2">
+					<a href={'/'} class="btn btn-ghost gap-2">
 						<FluentArrowLeft24Regular class="h-4 w-4" />
 						Back to Search
-					</button>
+					</a>
 					<h1 class="text-base-content text-2xl font-bold">Search History</h1>
 				</div>
 
@@ -175,7 +170,7 @@
 				<p class="text-base-content/60 mb-6">
 					Your visual search results will appear here once you start searching.
 				</p>
-				<button onclick={goBack} class="btn btn-primary">Start Searching</button>
+				<a href={'/'} class="btn btn-primary">Start Searching</a>
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">

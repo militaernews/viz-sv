@@ -60,6 +60,7 @@
 				bind:value={tagInput}
 				onkeydown={onTagKeydown}
 				onblur={onAddTag}
+				name="tags"
 				placeholder={tags.length === 0 ? 'Add tags to search...' : 'Add tag...'}
 				class="placeholder:text-base-content/60 min-w-0 flex-1 border-none bg-transparent text-sm outline-none"
 			/>

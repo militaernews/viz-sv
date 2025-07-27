@@ -2,7 +2,7 @@
 	import DetailsModal from '../lib/component/DetailsModal.svelte';
 	import SearchResultCell from '$lib/component/SearchResultCell.svelte';
 	import { browser } from '$app/environment';
-
+	import SuperDebug from 'sveltekit-superforms';
 	// Using proper Fluent icons
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentHistory24Regular from '~icons/fluent/history-24-regular';
@@ -29,9 +29,6 @@
 
 	// Collection and search type states
 	let selectedCollection = $state('images');
-
-	// Add reactive state for selected file
-	let selectedFile = $state<File | null>(null);
 
 	let dialog: HTMLDialogElement | undefined = $state();
 	let details: SearchResult | null = $state(null);
@@ -103,7 +100,7 @@
 
 	const showModal = (index: number) => {
 		const results = data || [];
-		details = results[index];
+		//	details = results[index];
 		dialog?.showModal();
 		return () => dialog?.close();
 	};
@@ -111,7 +108,7 @@
 	function handleFileChange(event: Event) {
 		// Update the selected file state immediately
 		const target = event.target as HTMLInputElement;
-		selectedFile = target.files?.[0] || null;
+		$form.image = target.files?.[0];
 	}
 
 	function handleDrag(e: DragEvent) {
@@ -130,7 +127,7 @@
 			dt.items.add(e.dataTransfer.files[0]);
 			fileInput.files = dt.files;
 			// Update selected file state immediately
-			selectedFile = e.dataTransfer.files[0];
+			$form.image = e.dataTransfer.files[0];
 		}
 	}
 
@@ -167,22 +164,21 @@
 	// Reactive status
 	const uploadStatus = $derived(isLoading ? 'loading' : errors ? 'error' : 'idle');
 
-	const hasImage = $derived(!!selectedFile);
-	const selectedFileName = $derived(selectedFile?.name || '');
-	const displayResults = $derived([]);
+	const hasImage = $derived(!!$form.image);
+	const selectedFileName = $derived($form.image?.name || '');
 
 	// Validation for search readiness
 	const canSearch = $derived(() => {
 		if ($form.searchType === 'image') {
 			return hasImage;
 		} else {
-			return $form.tags.length > 0;
+			return $form.tags?.length! > 0;
 		}
 	});
 
 	// Auto-switch search type when tags are added/removed
 	$effect(() => {
-		if (tags.length > 0 && $form.searchType === 'image' && !hasImage) {
+		if ($form.tags?.length! > 0 && $form.searchType === 'image' && !hasImage) {
 			$form.searchType = 'tags';
 		}
 	});
@@ -200,10 +196,6 @@
 	<div class="bg-base-100/95 border-base-200 sticky top-0 z-10 border-b backdrop-blur-sm">
 		<div class="container mx-auto max-w-7xl px-4 py-2">
 			<form method="POST" enctype="multipart/form-data" use:enhance>
-				<input type="hidden" name="tags" value={$form.tags} />
-				<input type="hidden" name="startDate" value={$form.startDate} />
-				<input type="hidden" name="endDate" value={$form.endDate} />
-				<input type="hidden" name="collection" value={selectedCollection} />
 				<div class="flex flex-row gap-4">
 					<!-- Search Type Selector -->
 					<div class="flex-shrink-0">
@@ -243,7 +235,10 @@
 
 					<!-- Sidebar: Filters + Actions -->
 					<div class="border-base-200 w-48 flex-shrink-0 space-y-3 border-l p-4">
-						<CollectionSelector collections={data.collections} bind:selectedCollection />
+						<CollectionSelector
+							collections={data.meta.datasets}
+							bind:selectedCollection={$form.collection}
+						/>
 
 						<DateFilter
 							startDate={$form.startDate?.toDateString() || ''}
@@ -277,9 +272,9 @@
 							</a>
 						</div>
 
-						{#if Object.keys(data.collections).length > 0}
+						{#if Object.keys(data.meta.datasets).length > 0}
 							<div class="text-base-content/60 border-t pt-2 text-xs">
-								Total: {Object.values($form.data.collections)
+								Total: {Object.values(data.meta.datasets)
 									.reduce((a, b) => a + b, 0)
 									.toLocaleString()} items
 							</div>
@@ -291,10 +286,13 @@
 	</div>
 
 	<!-- Results -->
-	{#if displayResults.length > 0}
+	{@debug data}
+	<SuperDebug data={$form} />
+
+	{#if data.searchResults.length > 0}
 		<div class="container mx-auto max-w-7xl px-6 py-4">
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				{#each displayResults as result, index}
+				{#each data.searchResults as result, index}
 					<SearchResultCell
 						{result}
 						onclick={() => showModal(index)}

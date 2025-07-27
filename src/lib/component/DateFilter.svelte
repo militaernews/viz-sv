@@ -15,7 +15,17 @@
 		<span class="text-base-content/80 text-xs font-medium">Date Range</span>
 	</div>
 	<div class="space-y-1">
-		<input type="date" bind:value={startDate} class="input input-bordered input-xs w-full" />
-		<input type="date" bind:value={endDate} class="input input-bordered input-xs w-full" />
+		<input
+			type="date"
+			bind:value={startDate}
+			name="startDate"
+			class="input input-bordered input-xs w-full"
+		/>
+		<input
+			type="date"
+			bind:value={endDate}
+			name="endDate"
+			class="input input-bordered input-xs w-full"
+		/>
 	</div>
 </div>

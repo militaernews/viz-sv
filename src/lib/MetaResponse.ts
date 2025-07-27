@@ -1,3 +1,3 @@
 export interface MetaResponse {
-	datasets: Record<string, number>[];
+	datasets: [key: string, value: number][];
 }

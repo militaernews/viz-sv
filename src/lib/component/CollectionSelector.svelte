@@ -1,8 +1,9 @@
 <script lang="ts">
+	import type { MetaResponse } from '$lib/MetaResponse';
 	import FluentDatabase24Regular from '~icons/fluent/database-24-regular';
 
 	interface Props {
-		collections: Record<string, number>;
+		collections: [key: string, value: number][];
 
 		selectedCollection: string;
 	}
@@ -32,7 +33,11 @@
 	</div>
 
 	{#if collectionEntries.length > 0}
-		<select bind:value={selectedCollection} class="select select-bordered select-xs w-full">
+		<select
+			bind:value={selectedCollection}
+			name="collection"
+			class="select select-bordered select-xs w-full"
+		>
 			{#each collectionEntries as [name, count]}
 				<option value={name}>
 					{name} ({count.toLocaleString()} items)
