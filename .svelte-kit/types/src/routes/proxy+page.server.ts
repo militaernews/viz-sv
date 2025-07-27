@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import type { TagSearchRequest } from '$lib/TagSearchRequest';
@@ -8,7 +9,7 @@ import { superValidate } from 'sveltekit-superforms/server';
 
 import { valibot } from 'sveltekit-superforms/adapters';
 
-export const load: PageServerLoad = async () => {
+export const load = async () => {
 	let collections: MetaResponse = {};
 
 	try {
@@ -149,3 +150,4 @@ export const actions = {
 		}
 	}
 } satisfies Actions;
+;null as any as PageServerLoad;

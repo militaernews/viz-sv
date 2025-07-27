@@ -1,19 +1,31 @@
 <script lang="ts">
 	import FluentTag24Regular from '~icons/fluent/tag-24-regular';
+
 	interface Props {
 		tags: string[];
+
 		tagInput: string;
+
 		tagInputElement: HTMLInputElement;
+
 		onAddTag: () => void;
+
 		onRemoveTag: (tag: string) => void;
+
 		onTagKeydown: (e: KeyboardEvent) => void;
 	}
+
 	let {
 		tags,
+
 		tagInput = $bindable(),
+
 		tagInputElement = $bindable(),
+
 		onAddTag,
+
 		onRemoveTag,
+
 		onTagKeydown
 	}: Props = $props();
 </script>
@@ -27,6 +39,7 @@
 				class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
 			>
 				{tag}
+
 				<button
 					type="button"
 					onclick={() => onRemoveTag(tag)}
@@ -41,6 +54,7 @@
 			{#if tags.length === 0}
 				<FluentTag24Regular class="text-base-content/30 h-4 w-4 flex-shrink-0" />
 			{/if}
+
 			<input
 				bind:this={tagInputElement}
 				bind:value={tagInput}
