@@ -5,6 +5,8 @@
 	import SuperDebug from 'sveltekit-superforms';
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentHistory24Regular from '~icons/fluent/history-24-regular';
+	import FluentImage24Regular from '~icons/fluent/image-24-regular';
+	import FluentTag24Regular from '~icons/fluent/tag-24-regular';
 	import type { SearchResult } from '$lib/SearchResult';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
 	import DateFilter from '$lib/component/DateFilter.svelte';
@@ -16,6 +18,16 @@
 
 	let { data } = $props();
 	const { form, errors, enhance } = superForm(data.form);
+
+	// Set default collection value
+	$effect(() => {
+		if (!$form.collection && data.meta?.datasets) {
+			const collections = Object.keys(data.meta.datasets);
+			if (collections.length > 0) {
+				$form.collection = collections[0];
+			}
+		}
+	});
 
 	// Search state using runes
 	let searchResults = $state<SearchResult[]>([]);
@@ -260,37 +272,38 @@
 	<div class="bg-base-100/95 border-base-200 sticky top-0 z-20 border-b backdrop-blur-sm">
 		<div class="container mx-auto max-w-7xl px-4 py-3">
 			<form onsubmit={handleSubmit}>
-				<div class="flex flex-row items-center gap-4">
-					<!-- Search Type Selector - Better Spacing -->
-					<div class="flex-shrink-0">
-						<div class="flex gap-3">
-							<label class="flex cursor-pointer items-center gap-2">
-								<input
-									type="radio"
-									bind:group={$form.searchType}
-									value="image"
-									class="radio radio-primary radio-sm"
-								/>
-								<span class="text-sm font-medium">Image</span>
-							</label>
-							<label class="flex cursor-pointer items-center gap-2">
-								<input
-									type="radio"
-									bind:group={$form.searchType}
-									value="tags"
-									class="radio radio-primary radio-sm"
-								/>
-								<span class="text-sm font-medium">Tags</span>
-							</label>
+				<div class="flex flex-row items-start gap-6">
+					<!-- Search Type & Content - Vertical Stack -->
+					<div class="flex min-w-[300px] flex-col gap-3">
+						<!-- Search Type Selector with Icons -->
+						<div class="flex gap-2">
+							<button
+								type="button"
+								onclick={() => ($form.searchType = 'image')}
+								class="btn btn-sm gap-2 {$form.searchType === 'image'
+									? 'btn-primary'
+									: 'btn-outline'}"
+							>
+								<FluentImage24Regular class="h-4 w-4" />
+								Image
+							</button>
+							<button
+								type="button"
+								onclick={() => ($form.searchType = 'tags')}
+								class="btn btn-sm gap-2 {$form.searchType === 'tags'
+									? 'btn-primary'
+									: 'btn-outline'}"
+							>
+								<FluentTag24Regular class="h-4 w-4" />
+								Tags
+							</button>
 						</div>
-					</div>
 
-					<!-- Main Content Area - More Height -->
-					<div class="flex flex-1 items-center">
-						{#if $form.searchType === 'image'}
-							<div class="w-full max-w-md">
+						<!-- Search Input Area -->
+						<div class="w-full">
+							{#if $form.searchType === 'image'}
 								<div
-									class="border-base-300 bg-base-100 hover:border-primary/50 flex items-center gap-3 rounded-lg border px-4 py-2.5 text-sm transition-colors"
+									class="border-base-300 bg-base-100 hover:border-primary/50 flex min-h-[42px] items-center gap-3 rounded-lg border border-dashed px-4 py-2.5 text-sm transition-colors"
 								>
 									{#if hasImage}
 										<span class="text-primary font-medium">📁 {selectedFileName}</span>
@@ -311,9 +324,7 @@
 									class="hidden"
 									onchange={handleFileChange}
 								/>
-							</div>
-						{:else}
-							<div class="w-full max-w-lg">
+							{:else}
 								<TagsInput
 									tags={$form.tags || []}
 									bind:tagInput
@@ -322,12 +333,12 @@
 									onRemoveTag={removeTag}
 									onTagKeydown={handleTagKeydown}
 								/>
-							</div>
-						{/if}
+							{/if}
+						</div>
 					</div>
 
-					<!-- Filters & Actions - Better Spacing -->
-					<div class="flex items-center gap-3">
+					<!-- Filters & Actions - Horizontal Row -->
+					<div class="flex flex-1 items-center justify-end gap-3">
 						<select
 							bind:value={$form.collection}
 							class="select select-sm select-bordered min-w-[120px]"
