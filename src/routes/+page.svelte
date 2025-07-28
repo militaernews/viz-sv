@@ -257,34 +257,63 @@
 <!-- Main Container -->
 <div class="bg-base-100 min-h-screen">
 	<!-- Compact Header -->
-	<div class="bg-base-100/95 border-base-200 sticky top-0 z-10 border-b backdrop-blur-sm">
-		<div class="container mx-auto max-w-7xl px-4 py-2">
+	<div class="bg-base-100/95 border-base-200 sticky top-0 z-20 border-b backdrop-blur-sm">
+		<div class="container mx-auto max-w-7xl px-4 py-3">
 			<form onsubmit={handleSubmit}>
-				<div class="flex flex-row gap-4">
-					<!-- Search Type Selector -->
+				<div class="flex flex-row items-center gap-4">
+					<!-- Search Type Selector - Better Spacing -->
 					<div class="flex-shrink-0">
-						<SearchTypeSelector bind:searchType={$form.searchType} />
+						<div class="flex gap-3">
+							<label class="flex cursor-pointer items-center gap-2">
+								<input
+									type="radio"
+									bind:group={$form.searchType}
+									value="image"
+									class="radio radio-primary radio-sm"
+								/>
+								<span class="text-sm font-medium">Image</span>
+							</label>
+							<label class="flex cursor-pointer items-center gap-2">
+								<input
+									type="radio"
+									bind:group={$form.searchType}
+									value="tags"
+									class="radio radio-primary radio-sm"
+								/>
+								<span class="text-sm font-medium">Tags</span>
+							</label>
+						</div>
 					</div>
 
-					<!-- Main Content Area -->
-					<div class="flex flex-1 flex-col items-center">
+					<!-- Main Content Area - More Height -->
+					<div class="flex flex-1 items-center">
 						{#if $form.searchType === 'image'}
-							<ImageUpload
-								bind:fileInput
-								isLoading={isSearching}
-								{uploadStatus}
-								{dragActive}
-								error={searchError || ''}
-								accept="image/*"
-								uploadText={selectedFileName || 'Upload image to search'}
-								dragText="Drop image here"
-								onInitiateUpload={initiateImageUpload}
-								onFileChange={handleFileChange}
-								onDrag={handleDrag}
-								onDrop={handleDrop}
-							/>
-						{:else}
 							<div class="w-full max-w-md">
+								<div
+									class="border-base-300 bg-base-100 hover:border-primary/50 flex items-center gap-3 rounded-lg border px-4 py-2.5 text-sm transition-colors"
+								>
+									{#if hasImage}
+										<span class="text-primary font-medium">📁 {selectedFileName}</span>
+									{:else}
+										<button
+											type="button"
+											onclick={initiateImageUpload}
+											class="text-base-content/60 hover:text-primary transition-colors"
+										>
+											Click to upload image or drag & drop
+										</button>
+									{/if}
+								</div>
+								<input
+									bind:this={fileInput}
+									type="file"
+									accept="image/*"
+									class="hidden"
+									onchange={handleFileChange}
+								/>
+							</div>
+						{:else}
+							<div class="w-full max-w-lg">
 								<TagsInput
 									tags={$form.tags || []}
 									bind:tagInput
@@ -297,51 +326,48 @@
 						{/if}
 					</div>
 
-					<!-- Sidebar: Filters + Actions -->
-					<div class="border-base-200 w-48 flex-shrink-0 space-y-3 border-l p-4">
-						<CollectionSelector
-							collections={data.meta.datasets}
-							bind:selectedCollection={$form.collection}
-						/>
+					<!-- Filters & Actions - Better Spacing -->
+					<div class="flex items-center gap-3">
+						<select
+							bind:value={$form.collection}
+							class="select select-sm select-bordered min-w-[120px]"
+						>
+							{#each Object.entries(data.meta?.datasets || {}) as [key, count]}
+								<option value={key}>{key} ({count})</option>
+							{/each}
+						</select>
 
-						<DateFilter
-							startDate={$form.startDate?.toDateString() || ''}
-							endDate={$form.endDate?.toDateString() || ''}
-						/>
+						<div class="flex items-center gap-2">
+							<input
+								type="date"
+								bind:value={$form.startDate}
+								class="input input-sm input-bordered w-[130px]"
+								placeholder="From"
+							/>
+							<span class="text-base-content/40 text-sm">to</span>
+							<input
+								type="date"
+								bind:value={$form.endDate}
+								class="input input-sm input-bordered w-[130px]"
+								placeholder="To"
+							/>
+						</div>
 
-						<!-- Action Buttons -->
-						<div class="space-y-2">
+						<div class="flex gap-2">
 							<button
 								type="submit"
 								disabled={isSearching || !canSearch()}
-								class="btn btn-primary btn-sm w-full gap-1"
-								title={!canSearch()
-									? $form.searchType === 'image'
-										? 'Please select an image'
-										: 'Please add at least one tag'
-									: ''}
+								class="btn btn-primary btn-sm min-w-[80px] gap-2"
 							>
-								<FluentSearch24Regular class="h-3 w-3" />
+								<FluentSearch24Regular class="h-4 w-4" />
 								{isSearching ? 'Searching...' : 'Search'}
 							</button>
 
-							<a
-								href="/history"
-								class="btn btn-secondary btn-sm w-full gap-1"
-								title="View Search History"
-							>
-								<FluentHistory24Regular class="h-3 w-3" />
+							<a href="/history" class="btn btn-secondary btn-sm gap-2">
+								<FluentHistory24Regular class="h-4 w-4" />
 								History
 							</a>
 						</div>
-
-						{#if Object.keys(data.meta.datasets).length > 0}
-							<div class="text-base-content/60 border-t pt-2 text-xs">
-								Total: {Object.values(data.meta.datasets)
-									.reduce((a, b) => a + b, 0)
-									.toLocaleString()} items
-							</div>
-						{/if}
 					</div>
 				</div>
 			</form>
@@ -359,23 +385,32 @@
 
 	<!-- Results -->
 	{#if isSearching}
-		<div class="container mx-auto max-w-7xl px-6 py-4">
-			<div class="flex items-center justify-center py-8">
-				<div class="loading loading-spinner loading-lg"></div>
-				<span class="ml-2">Searching...</span>
+		<div class="container mx-auto max-w-7xl px-4 py-8">
+			<div class="flex items-center justify-center">
+				<div class="loading loading-spinner loading-md"></div>
+				<span class="ml-2 text-sm">Searching...</span>
 			</div>
 		</div>
 	{:else if searchResults.length > 0}
-		<div class="container mx-auto max-w-7xl px-6 py-4">
-			<div class="text-base-content/60 mb-4 text-sm">
-				Found {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
+		<div class="container mx-auto max-w-7xl px-4 py-2">
+			<div class="mb-2 flex items-center justify-between">
+				<div class="text-base-content/60 text-sm">
+					Found {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
+				</div>
+				<div class="text-base-content/40 text-xs">
+					Total: {Object.values(data.meta?.datasets || {})
+						.reduce((a, b) => a + b, 0)
+						.toLocaleString()} items
+				</div>
 			</div>
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			<div
+				class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+			>
 				{#each searchResults as result, index}
 					<SearchResultCell
 						{result}
 						onclick={() => showModal(index)}
-						class="hover:shadow-shadow-lg cursor-pointer transition-all duration-200 hover:scale-[1.02]"
+						class="cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
 					/>
 				{/each}
 			</div>

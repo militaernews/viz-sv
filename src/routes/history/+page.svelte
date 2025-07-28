@@ -27,22 +27,48 @@
 	const HISTORY_STORAGE_KEY = 'search_history_v2';
 
 	// Load history from localStorage
+	// Debug version of loadHistory function
 	function loadHistory() {
-		if (!browser) return;
+		console.log('=== DEBUG loadHistory ===');
+		console.log('browser:', browser);
+		console.log('HISTORY_STORAGE_KEY:', HISTORY_STORAGE_KEY);
+
+		if (!browser) {
+			console.log('Exiting early - browser is false');
+			return;
+		}
 
 		try {
 			const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+			console.log('Raw stored data:', stored);
+			console.log('Storage length:', stored?.length);
+
 			if (stored) {
 				const parsed = JSON.parse(stored);
+				console.log('Parsed data:', parsed);
+				console.log('Type of parsed:', typeof parsed);
+				console.log('Is array:', Array.isArray(parsed));
+				console.log('Array length:', parsed?.length);
+
 				if (Array.isArray(parsed)) {
-					searchHistory = parsed.sort((a, b) => b.timestamp - a.timestamp);
+					const sorted = parsed.sort((a, b) => b.timestamp - a.timestamp);
+					console.log('Sorted data:', sorted);
+					searchHistory = sorted;
+					console.log('searchHistory after assignment:', searchHistory);
+				} else {
+					console.log('Data is not an array, skipping');
 				}
+			} else {
+				console.log('No stored data found');
 			}
 		} catch (error) {
 			console.error('Failed to load history:', error);
 			searchHistory = [];
 		} finally {
+			console.log('Setting isLoading to false');
 			isLoading = false;
+			console.log('Final searchHistory:', searchHistory);
+			console.log('Final isLoading:', isLoading);
 		}
 	}
 
@@ -155,150 +181,154 @@
 		</div>
 	</div>
 
-	<div class="container mx-auto max-w-7xl px-4 py-8">
-		{#if isLoading}
-			<!-- Loading -->
-			<div class="py-16 text-center">
-				<span class="loading loading-spinner loading-lg text-primary"></span>
-				<p class="text-base-content/60 mt-4">Loading search history...</p>
-			</div>
-		{:else if searchHistory.length === 0}
-			<!-- Empty State -->
-			<div class="py-16 text-center">
-				<div class="text-base-content/60 mb-4 text-6xl">📜</div>
-				<h2 class="text-base-content mb-2 text-xl font-semibold">No search history yet</h2>
-				<p class="text-base-content/60 mb-6">
-					Your visual search results will appear here once you start searching.
-				</p>
-				<a href={'/'} class="btn btn-primary">Start Searching</a>
-			</div>
-		{:else}
-			<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-				<!-- History List -->
-				<div class="lg:col-span-1">
-					<h2 class="text-base-content mb-4 text-lg font-semibold">
-						Search History ({searchHistory.length})
-					</h2>
-
-					<div class="space-y-3">
-						{#each searchHistory as entry}
-							<div
-								class="card bg-base-200 hover:bg-base-300 cursor-pointer transition-all {selectedEntry?.id ===
-								entry.id
-									? 'ring-primary ring-2'
-									: ''}"
-								onclick={() => (selectedEntry = entry)}
-							>
-								<div class="card-body p-4">
-									<div class="mb-2 flex items-center justify-between">
-										<span class="text-base-content/60 text-sm">
-											{formatDate(entry.timestamp)}
-										</span>
-										<div class="flex gap-1">
-											<button
-												onclick={(e) => {
-													e.stopPropagation();
-													exportHistoryEntry(entry);
-												}}
-												class="btn btn-ghost btn-xs"
-												title="Export"
-											>
-												<FluentSave24Regular class="h-3 w-3" />
-											</button>
-											<button
-												onclick={(e) => {
-													e.stopPropagation();
-													deleteHistoryEntry(entry.id);
-												}}
-												class="btn btn-ghost btn-xs text-error hover:text-error"
-												title="Delete"
-											>
-												<FluentDelete24Regular class="h-3 w-3" />
-											</button>
-										</div>
-									</div>
-
-									<div class="space-y-2">
-										<!-- Results count -->
-										<div class="text-sm font-medium">
-											{entry.results.length} result{entry.results.length === 1 ? '' : 's'}
-										</div>
-
-										<!-- Search parameters -->
-										<div class="text-base-content/60 space-y-1 text-xs">
-											{#if entry.searchParams.imageFileName}
-												<div class="flex items-center gap-1">
-													<FluentImage24Regular class="h-3 w-3" />
-													{entry.searchParams.imageFileName}
-												</div>
-											{/if}
-
-											{#if entry.searchParams.videoFileName}
-												<div class="flex items-center gap-1">
-													<FluentVideo24Regular class="h-3 w-3" />
-													{entry.searchParams.videoFileName}
-												</div>
-											{/if}
-
-											{#if entry.searchParams.tags.length > 0}
-												<div class="flex items-center gap-1">
-													<FluentTag24Regular class="h-3 w-3" />
-													{entry.searchParams.tags.join(', ')}
-												</div>
-											{/if}
-
-											{#if entry.searchParams.startDate || entry.searchParams.endDate}
-												<div class="flex items-center gap-1">
-													<FluentCalendar24Regular class="h-3 w-3" />
-													{entry.searchParams.startDate || '...'} - {entry.searchParams.endDate ||
-														'...'}
-												</div>
-											{/if}
-										</div>
-									</div>
-								</div>
-							</div>
-						{/each}
-					</div>
+	{#key searchHistory.length}
+		<div class="container mx-auto max-w-7xl px-4 py-8">
+			{#if isLoading}
+				<!-- Loading -->
+				<div class="py-16 text-center">
+					<span class="loading loading-spinner loading-lg text-primary"></span>
+					<p class="text-base-content/60 mt-4">Loading search history...</p>
 				</div>
+			{:else if searchHistory.length === 0}
+				<!-- Empty State -->
+				<div class="py-16 text-center">
+					<div class="text-base-content/60 mb-4 text-6xl">📜</div>
+					<h2 class="text-base-content mb-2 text-xl font-semibold">No search history yet</h2>
+					<p class="text-base-content/60 mb-6">
+						Your visual search results will appear here once you start searching.
+					</p>
+					<a href={'/'} class="btn btn-primary">Start Searching</a>
+				</div>
+			{:else}
+				<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+					<!-- History List -->
+					<div class="lg:col-span-1">
+						<h2 class="text-base-content mb-4 text-lg font-semibold">
+							Search History ({searchHistory.length})
+						</h2>
 
-				<!-- Results Display -->
-				<div class="lg:col-span-2">
-					{#if selectedEntry}
-						<div class="mb-6">
-							<h2 class="text-base-content mb-2 text-lg font-semibold">
-								Search Results from {formatDate(selectedEntry.timestamp)}
-							</h2>
-							<p class="text-base-content/60">
-								{selectedEntry.results.length} result{selectedEntry.results.length === 1 ? '' : 's'}
-							</p>
-						</div>
+						<div class="space-y-3">
+							{#each searchHistory as entry}
+								<div
+									class="card bg-base-200 hover:bg-base-300 cursor-pointer transition-all {selectedEntry?.id ===
+									entry.id
+										? 'ring-primary ring-2'
+										: ''}"
+									onclick={() => (selectedEntry = entry)}
+								>
+									<div class="card-body p-4">
+										<div class="mb-2 flex items-center justify-between">
+											<span class="text-base-content/60 text-sm">
+												{formatDate(entry.timestamp)}
+											</span>
+											<div class="flex gap-1">
+												<button
+													onclick={(e) => {
+														e.stopPropagation();
+														exportHistoryEntry(entry);
+													}}
+													class="btn btn-ghost btn-xs"
+													title="Export"
+												>
+													<FluentSave24Regular class="h-3 w-3" />
+												</button>
+												<button
+													onclick={(e) => {
+														e.stopPropagation();
+														deleteHistoryEntry(entry.id);
+													}}
+													class="btn btn-ghost btn-xs text-error hover:text-error"
+													title="Delete"
+												>
+													<FluentDelete24Regular class="h-3 w-3" />
+												</button>
+											</div>
+										</div>
 
-						<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-							{#each selectedEntry.results as result}
-								<div class="group">
-									<SearchResultCell
-										{result}
-										onclick={() => showModal(result)}
-										class="cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
-									/>
+										<div class="space-y-2">
+											<!-- Results count -->
+											<div class="text-sm font-medium">
+												{entry.results.length} result{entry.results.length === 1 ? '' : 's'}
+											</div>
+
+											<!-- Search parameters -->
+											<div class="text-base-content/60 space-y-1 text-xs">
+												{#if entry.searchParams.imageFileName}
+													<div class="flex items-center gap-1">
+														<FluentImage24Regular class="h-3 w-3" />
+														{entry.searchParams.imageFileName}
+													</div>
+												{/if}
+
+												{#if entry.searchParams.videoFileName}
+													<div class="flex items-center gap-1">
+														<FluentVideo24Regular class="h-3 w-3" />
+														{entry.searchParams.videoFileName}
+													</div>
+												{/if}
+
+												{#if entry.searchParams.tags.length > 0}
+													<div class="flex items-center gap-1">
+														<FluentTag24Regular class="h-3 w-3" />
+														{entry.searchParams.tags.join(', ')}
+													</div>
+												{/if}
+
+												{#if entry.searchParams.startDate || entry.searchParams.endDate}
+													<div class="flex items-center gap-1">
+														<FluentCalendar24Regular class="h-3 w-3" />
+														{entry.searchParams.startDate || '...'} - {entry.searchParams.endDate ||
+															'...'}
+													</div>
+												{/if}
+											</div>
+										</div>
+									</div>
 								</div>
 							{/each}
 						</div>
-					{:else}
-						<!-- No selection state -->
-						<div class="py-16 text-center">
-							<div class="text-base-content/60 mb-4 text-4xl">👈</div>
-							<h3 class="text-base-content mb-2 text-lg font-semibold">
-								Select a search from history
-							</h3>
-							<p class="text-base-content/60">Click on any search entry to view its results.</p>
-						</div>
-					{/if}
+					</div>
+
+					<!-- Results Display -->
+					<div class="lg:col-span-2">
+						{#if selectedEntry}
+							<div class="mb-6">
+								<h2 class="text-base-content mb-2 text-lg font-semibold">
+									Search Results from {formatDate(selectedEntry.timestamp)}
+								</h2>
+								<p class="text-base-content/60">
+									{selectedEntry.results.length} result{selectedEntry.results.length === 1
+										? ''
+										: 's'}
+								</p>
+							</div>
+
+							<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+								{#each selectedEntry.results as result}
+									<div class="group">
+										<SearchResultCell
+											{result}
+											onclick={() => showModal(result)}
+											class="cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+										/>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<!-- No selection state -->
+							<div class="py-16 text-center">
+								<div class="text-base-content/60 mb-4 text-4xl">👈</div>
+								<h3 class="text-base-content mb-2 text-lg font-semibold">
+									Select a search from history
+								</h3>
+								<p class="text-base-content/60">Click on any search entry to view its results.</p>
+							</div>
+						{/if}
+					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+			{/if}
+		</div>
+	{/key}
 
 	<!-- Details Modal -->
 	<DetailsModal {details} bind:dialog />
