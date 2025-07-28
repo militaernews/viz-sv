@@ -3,7 +3,6 @@
 	import SearchResultCell from '$lib/component/SearchResultCell.svelte';
 	import { browser } from '$app/environment';
 	import SuperDebug from 'sveltekit-superforms';
-	// Using proper Fluent icons
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentHistory24Regular from '~icons/fluent/history-24-regular';
 	import type { SearchResult } from '$lib/SearchResult';
@@ -18,18 +17,18 @@
 	let { data } = $props();
 	const { form, errors, enhance } = superForm(data.form);
 
+	// Search state using runes
+	let searchResults = $state<SearchResult[]>([]);
+	let isSearching = $state(false);
+	let searchError = $state<string | null>(null);
+
+	// UI state
 	let dragActive = $state(false);
 	let isLoading = $state(false);
 	let fileInput: HTMLInputElement;
-
 	let tagInput = $state('');
 	let tagInputElement: HTMLInputElement;
-
-	// Date states
-
-	// Collection and search type states
 	let selectedCollection = $state('images');
-
 	let dialog: HTMLDialogElement | undefined = $state();
 	let details: SearchResult | null = $state(null);
 
@@ -58,7 +57,6 @@
 		if (!browser || results.length === 0) return;
 
 		try {
-			// Convert images to base64 if they aren't already
 			const resultsWithBase64 = await Promise.all(
 				results.map(async (result) => ({
 					...result,
@@ -80,33 +78,102 @@
 				}
 			};
 
-			// Get existing history
 			const existingHistory = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
-
-			// Add new entry at the beginning
 			const updatedHistory = [historyEntry, ...existingHistory];
-
-			// Keep only last 100 entries
 			const limitedHistory = updatedHistory.slice(0, 100);
 
-			// Save to localStorage
 			localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedHistory));
-
 			console.log('Search saved to history:', historyEntry.id);
 		} catch (error) {
 			console.error('Failed to save to history:', error);
 		}
 	}
 
+	// Client-side search function
+	async function performSearch() {
+		if (!browser) return;
+
+		isSearching = true;
+		searchError = null;
+
+		try {
+			let response: Response;
+
+			if ($form.searchType === 'tags') {
+				if (!$form.tags?.length) {
+					throw new Error('No tags provided for tag search');
+				}
+
+				const requestBody = {
+					tags: $form.tags,
+					collection: $form.collection,
+					posted_before: $form.endDate?.toISOString(),
+					posted_after: $form.startDate?.toISOString()
+				};
+
+				response = await fetch('http://localhost:3000/search/tags', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(requestBody)
+				});
+			} else {
+				if (!$form.image) {
+					throw new Error('No image provided for image search');
+				}
+
+				const searchParams = {
+					collection: $form.collection,
+					posted_before: $form.endDate?.toISOString(),
+					posted_after: $form.startDate?.toISOString()
+				};
+
+				const body = new FormData();
+				body.append('image', $form.image);
+				body.append('params', JSON.stringify(searchParams));
+
+				response = await fetch('http://localhost:3000/search/images', {
+					method: 'POST',
+					body
+				});
+			}
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`Search failed: ${errorText}`);
+			}
+
+			const results: SearchResult[] = await response.json();
+			searchResults = results;
+
+			// Save to history
+			await saveToHistory(results, {
+				searchType: $form.searchType,
+				imageFileName: $form.image?.name || '',
+				tags: $form.tags,
+				startDate: $form.startDate || '',
+				endDate: $form.endDate || '',
+				collection: $form.collection
+			});
+		} catch (error) {
+			searchError = error instanceof Error ? error.message : 'Search failed';
+		} finally {
+			isSearching = false;
+		}
+	}
+
+	// Handle form submission
+	async function handleSubmit(event: Event) {
+		event.preventDefault();
+		await performSearch();
+	}
+
 	const showModal = (index: number) => {
-		const results = data || [];
-		//	details = results[index];
+		details = searchResults[index];
 		dialog?.showModal();
 		return () => dialog?.close();
 	};
 
 	function handleFileChange(event: Event) {
-		// Update the selected file state immediately
 		const target = event.target as HTMLInputElement;
 		$form.image = target.files?.[0];
 	}
@@ -126,28 +193,27 @@
 			const dt = new DataTransfer();
 			dt.items.add(e.dataTransfer.files[0]);
 			fileInput.files = dt.files;
-			// Update selected file state immediately
 			$form.image = e.dataTransfer.files[0];
 		}
 	}
 
 	function initiateImageUpload() {
-		if (!isLoading) {
+		if (!isLoading && !isSearching) {
 			fileInput.click();
 		}
 	}
 
 	function addTag() {
 		const trimmedTag = tagInput.trim();
-		if (trimmedTag && !$form.tags?.includes(trimmedTag)) {
-			$form.tags = [...$form.tags!, trimmedTag];
+		if (trimmedTag && !($form.tags || []).includes(trimmedTag)) {
+			$form.tags = [...($form.tags || []), trimmedTag];
 			tagInput = '';
 			setTimeout(() => tagInputElement?.focus(), 0);
 		}
 	}
 
 	function removeTag(tagToRemove: string) {
-		$form.tags = $form.tags?.filter((tag) => tag !== tagToRemove);
+		$form.tags = ($form.tags || []).filter((tag) => tag !== tagToRemove);
 		setTimeout(() => tagInputElement?.focus(), 0);
 	}
 
@@ -155,15 +221,15 @@
 		if (e.key === 'Enter' || e.key === ',') {
 			e.preventDefault();
 			addTag();
-		} else if ((e.key === 'Backspace' && tagInput === '' && $form.tags?.length) || 0 > 0) {
+		} else if (e.key === 'Backspace' && tagInput === '' && ($form.tags?.length || 0) > 0) {
 			e.preventDefault();
-			removeTag($form.tags![$form.tags?.length || 0 - 1]);
+			const tags = $form.tags || [];
+			removeTag(tags[tags.length - 1]);
 		}
 	}
 
-	// Reactive status
-	const uploadStatus = $derived(isLoading ? 'loading' : errors ? 'error' : 'idle');
-
+	// Derived reactive values using runes
+	const uploadStatus = $derived(isSearching ? 'loading' : searchError ? 'error' : 'idle');
 	const hasImage = $derived(!!$form.image);
 	const selectedFileName = $derived($form.image?.name || '');
 
@@ -172,13 +238,13 @@
 		if ($form.searchType === 'image') {
 			return hasImage;
 		} else {
-			return $form.tags?.length! > 0;
+			return ($form.tags?.length || 0) > 0;
 		}
 	});
 
 	// Auto-switch search type when tags are added/removed
 	$effect(() => {
-		if ($form.tags?.length! > 0 && $form.searchType === 'image' && !hasImage) {
+		if (($form.tags?.length || 0) > 0 && $form.searchType === 'image' && !hasImage) {
 			$form.searchType = 'tags';
 		}
 	});
@@ -188,18 +254,16 @@
 	<title>MN Viz</title>
 </svelte:head>
 
-<!-- Hidden form inputs -->
-
 <!-- Main Container -->
 <div class="bg-base-100 min-h-screen">
 	<!-- Compact Header -->
 	<div class="bg-base-100/95 border-base-200 sticky top-0 z-10 border-b backdrop-blur-sm">
 		<div class="container mx-auto max-w-7xl px-4 py-2">
-			<form method="POST" enctype="multipart/form-data" use:enhance>
+			<form onsubmit={handleSubmit}>
 				<div class="flex flex-row gap-4">
 					<!-- Search Type Selector -->
 					<div class="flex-shrink-0">
-						<SearchTypeSelector searchType={$form.searchType} />
+						<SearchTypeSelector bind:searchType={$form.searchType} />
 					</div>
 
 					<!-- Main Content Area -->
@@ -207,10 +271,10 @@
 						{#if $form.searchType === 'image'}
 							<ImageUpload
 								bind:fileInput
-								{isLoading}
+								isLoading={isSearching}
 								{uploadStatus}
 								{dragActive}
-								error={''}
+								error={searchError || ''}
 								accept="image/*"
 								uploadText={selectedFileName || 'Upload image to search'}
 								dragText="Drop image here"
@@ -249,7 +313,7 @@
 						<div class="space-y-2">
 							<button
 								type="submit"
-								disabled={isLoading || !canSearch()}
+								disabled={isSearching || !canSearch()}
 								class="btn btn-primary btn-sm w-full gap-1"
 								title={!canSearch()
 									? $form.searchType === 'image'
@@ -258,12 +322,11 @@
 									: ''}
 							>
 								<FluentSearch24Regular class="h-3 w-3" />
-								Search
+								{isSearching ? 'Searching...' : 'Search'}
 							</button>
 
 							<a
-								type="button"
-								href={'/history'}
+								href="/history"
 								class="btn btn-secondary btn-sm w-full gap-1"
 								title="View Search History"
 							>
@@ -285,14 +348,30 @@
 		</div>
 	</div>
 
-	<!-- Results -->
-	{@debug data}
-	<SuperDebug data={$form} />
-
-	{#if data.searchResults.length > 0}
+	<!-- Error Display -->
+	{#if searchError}
 		<div class="container mx-auto max-w-7xl px-6 py-4">
+			<div class="alert alert-error">
+				<span>{searchError}</span>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Results -->
+	{#if isSearching}
+		<div class="container mx-auto max-w-7xl px-6 py-4">
+			<div class="flex items-center justify-center py-8">
+				<div class="loading loading-spinner loading-lg"></div>
+				<span class="ml-2">Searching...</span>
+			</div>
+		</div>
+	{:else if searchResults.length > 0}
+		<div class="container mx-auto max-w-7xl px-6 py-4">
+			<div class="text-base-content/60 mb-4 text-sm">
+				Found {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
+			</div>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				{#each data.searchResults as result, index}
+				{#each searchResults as result, index}
 					<SearchResultCell
 						{result}
 						onclick={() => showModal(index)}
@@ -305,3 +384,6 @@
 		<DetailsModal {details} bind:dialog />
 	{/if}
 </div>
+
+{@debug $form}
+<SuperDebug data={$form} />

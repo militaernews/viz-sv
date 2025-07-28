@@ -3,7 +3,7 @@
 	import FluentDatabase24Regular from '~icons/fluent/database-24-regular';
 
 	interface Props {
-		collections: [key: string, value: number][];
+		collections: MetaResponse['datasets'];
 
 		selectedCollection: string;
 	}

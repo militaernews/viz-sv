@@ -10,7 +10,7 @@ import { valibot } from 'sveltekit-superforms/adapters';
 import type { SearchResult } from '$lib/SearchResult';
 
 export const load: PageServerLoad = async () => {
-	let meta: MetaResponse;
+	let meta: MetaResponse | null = null;
 
 	try {
 		// Fetch available collections from the meta endpoint
