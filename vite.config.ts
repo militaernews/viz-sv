@@ -49,6 +49,6 @@ export default defineConfig({
 	],
 	server: {
 		allowedHosts: true,
-			port: 3011
+		port: 3011
 	}
 });
