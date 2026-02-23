@@ -1,6 +1,8 @@
+
 // this file is generated — do not edit it
 
-declare module 'svelte/elements' {
+
+declare module "svelte/elements" {
 	export interface HTMLAttributes<T> {
 		'data-sveltekit-keepfocus'?: true | '' | 'off' | undefined | null;
 		'data-sveltekit-noscroll'?: true | '' | 'off' | undefined | null;
@@ -22,23 +24,20 @@ declare module 'svelte/elements' {
 
 export {};
 
-declare module '$app/types' {
+
+declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): '/' | '/history' | '/privacy-policy';
-		RouteParams(): {};
-		LayoutParams(): {
-			'/': Record<string, never>;
-			'/history': Record<string, never>;
-			'/privacy-policy': Record<string, never>;
+		RouteId(): "/" | "/history" | "/privacy-policy";
+		RouteParams(): {
+			
 		};
-		Pathname(): '/' | '/history' | '/history/' | '/privacy-policy' | '/privacy-policy/';
-		ResolvedPathname(): `${'' | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
-		Asset():
-			| '/favicon.png'
-			| '/fonts/HPSimplified.ttf'
-			| '/icon-512.png'
-			| '/manifest.json'
-			| '/placeholder.svg'
-			| (string & {});
+		LayoutParams(): {
+			"/": Record<string, never>;
+			"/history": Record<string, never>;
+			"/privacy-policy": Record<string, never>
+		};
+		Pathname(): "/" | "/history" | "/privacy-policy";
+		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
+		Asset(): "/favicon.png" | "/fonts/HPSimplified.ttf" | "/icon-512.png" | "/manifest.json" | "/placeholder.svg" | string & {};
 	}
 }

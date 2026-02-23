@@ -208,7 +208,7 @@
 						</h2>
 
 						<div class="space-y-3">
-							{#each searchHistory as entry}
+							{#each searchHistory as entry (entry.id)}
 								<div
 									class="card bg-base-200 hover:bg-base-300 cursor-pointer transition-all {selectedEntry?.id ===
 									entry.id
@@ -304,7 +304,7 @@
 							</div>
 
 							<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-								{#each selectedEntry.results as result}
+								{#each selectedEntry.results as result (result.chat_id + '/' + result.msg_id)}
 									<div class="group">
 										<SearchResultCell
 											{result}

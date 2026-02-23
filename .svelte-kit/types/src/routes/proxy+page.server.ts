@@ -145,4 +145,4 @@ export const actions = {
 		}
 	}
 } satisfies Actions;
-null as any as PageServerLoad;
+;null as any as PageServerLoad;
