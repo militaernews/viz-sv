@@ -348,8 +348,49 @@
 	<div class="sticky top-0 z-20 border-b border-base-content/15 bg-neutral/95">
 		<div class="container mx-auto max-w-7xl px-3 py-2">
 			<form onsubmit={handleSubmit} class="flex flex-col gap-2">
-				<!-- The actual input, full width -->
-				<div class="w-full">
+				<!-- Row 1: type toggle + collection (left), history (right) -->
+				<div class="flex flex-wrap items-center gap-1.5">
+					<Button
+						type="button"
+						size="xs"
+						variant={$form.searchType === 'image' ? 'primary' : 'subtle'}
+						icon={FluentImage24Regular}
+						onclick={() => ($form.searchType = 'image')}
+					>
+						Image
+					</Button>
+					<Button
+						type="button"
+						size="xs"
+						variant={$form.searchType === 'tags' ? 'primary' : 'subtle'}
+						icon={FluentTag24Regular}
+						onclick={() => ($form.searchType = 'tags')}
+					>
+						Tags
+					</Button>
+
+					<div class="w-32 min-w-0">
+						<CollectionSelector bind:selectedCollection={$form.collection} collections={data.meta?.datasets ?? {}} />
+					</div>
+
+					<Button
+						href="/history"
+						size="xs"
+						variant="secondary"
+						icon={FluentHistory24Regular}
+						class="ml-auto hidden lg:inline-flex"
+					>
+						History
+					</Button>
+				</div>
+
+				<!-- Row 2: date range + search input (left/middle), search button (very right) -->
+				<div class="flex items-center gap-1.5">
+					<div class="w-36 min-w-0 shrink-0">
+						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
+					</div>
+
+					<div class="min-w-0 flex-1">
 					{#if $form.searchType === 'image'}
 						<div
 							class="field-control flex min-h-[38px] cursor-pointer items-center justify-between gap-3 rounded-2xl border border-dashed px-4 py-2 text-sm transition-colors {dragActive
@@ -403,46 +444,7 @@
 							onTagKeydown={handleTagKeydown}
 						/>
 					{/if}
-				</div>
-
-				<!-- Everything else: one dense, wrapping row -->
-				<div class="flex flex-wrap items-center gap-1.5">
-					<Button
-						type="button"
-						size="xs"
-						variant={$form.searchType === 'image' ? 'primary' : 'subtle'}
-						icon={FluentImage24Regular}
-						onclick={() => ($form.searchType = 'image')}
-					>
-						Image
-					</Button>
-					<Button
-						type="button"
-						size="xs"
-						variant={$form.searchType === 'tags' ? 'primary' : 'subtle'}
-						icon={FluentTag24Regular}
-						onclick={() => ($form.searchType = 'tags')}
-					>
-						Tags
-					</Button>
-
-					<div class="w-32 min-w-0">
-						<CollectionSelector bind:selectedCollection={$form.collection} collections={data.meta?.datasets ?? {}} />
 					</div>
-
-					<div class="w-36 min-w-0">
-						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
-					</div>
-
-					<Button
-						href="/history"
-						size="xs"
-						variant="secondary"
-						icon={FluentHistory24Regular}
-						class="hidden lg:inline-flex"
-					>
-						History
-					</Button>
 
 					{#if !inTelegram}
 						<Button
