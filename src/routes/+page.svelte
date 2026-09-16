@@ -386,7 +386,7 @@
 
 				<!-- Row 2: date range + search input (left/middle), search button (very right) -->
 				<div class="flex items-center gap-1.5">
-					<div class="w-36 min-w-0 shrink-0">
+					<div class="w-64 min-w-0 shrink-0">
 						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
 					</div>
 
@@ -411,7 +411,7 @@
 							ondrop={handleDrop}
 						>
 							{#if hasImage}
-								<span class="truncate font-medium text-primary">📁 {selectedFileName}</span>
+								<span class="min-w-0 truncate font-medium text-primary">📁 {selectedFileName}</span>
 								<button
 									type="button"
 									onclick={(e) => {
