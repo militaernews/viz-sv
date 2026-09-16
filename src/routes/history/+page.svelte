@@ -19,7 +19,7 @@
 	// State
 	let searchHistory = $state<SearchHistoryEntry[]>([]);
 	let selectedEntry = $state<SearchHistoryEntry | null>(null);
-	let dialog: HTMLDialogElement | undefined = $state();
+	let detailsOpen = $state(false);
 	let details: SearchResult | null = $state(null);
 	let isLoading = $state(true);
 
@@ -132,7 +132,7 @@
 	// Show modal with result details
 	function showModal(result: SearchResult) {
 		details = result;
-		dialog?.showModal();
+		detailsOpen = true;
 	}
 
 	// Load history on mount
@@ -160,7 +160,7 @@
 
 <div class="bg-base-100 min-h-screen">
 	<!-- Header -->
-	<div class="bg-base-100/95 border-base-200 sticky top-0 z-10 border-b backdrop-blur-sm">
+	<div class="bg-base-100/95 border-base-200 sticky top-0 z-10 border-b">
 		<div class="container mx-auto max-w-7xl px-4 py-4">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-4">
@@ -214,7 +214,15 @@
 									entry.id
 										? 'ring-primary ring-2'
 										: ''}"
+									role="button"
+									tabindex="0"
 									onclick={() => (selectedEntry = entry)}
+									onkeydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											selectedEntry = entry;
+										}
+									}}
 								>
 									<div class="card-body p-4">
 										<div class="mb-2 flex items-center justify-between">
@@ -331,5 +339,5 @@
 	{/key}
 
 	<!-- Details Modal -->
-	<DetailsModal {details} bind:dialog />
+	<DetailsModal {details} bind:open={detailsOpen} />
 </div>

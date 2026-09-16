@@ -1,84 +1,62 @@
 /// <reference types="@sveltejs/kit" />
-import { build, files, version } from '$service-worker';
+/// <reference lib="webworker" />
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 
-// Create a unique cache name for this deployment
-const CACHE = `cache-${version}`;
+// Precaches the app shell (build output + static/ files) - vite-pwa injects the
+// manifest into self.__WB_MANIFEST at build time.
+precacheAndRoute(self.__WB_MANIFEST);
+cleanupOutdatedCaches();
 
-const ASSETS = [
-	...build, // the app itself
-	...files // everything in `static`
-];
+// Search results embed each match's thumbnail as a base64 data URI, so there's
+// no separate image request to cache - caching the response body here is what
+// caches the thumbs. Requests are POSTs (tags JSON or a multipart image), which
+// the Cache API can't key on directly, so we hash the body into a synthetic key.
+const SEARCH_CACHE = 'search-results-v1';
 
-self.addEventListener('install', (event) => {
-	// Create a new cache and add all files to it
-	async function addFilesToCache() {
-		const cache = await caches.open(CACHE);
-		await cache.addAll(ASSETS);
-	}
-
-	event.waitUntil(addFilesToCache());
-});
-
-self.addEventListener('activate', (event) => {
-	// Remove previous cached data from disk
-	async function deleteOldCaches() {
-		for (const key of await caches.keys()) {
-			if (key !== CACHE) {
-				await caches.delete(key);
-			}
-		}
-	}
-
-	event.waitUntil(deleteOldCaches());
-});
+async function searchCacheKey(request) {
+	const bytes = await request.clone().arrayBuffer();
+	const digest = await crypto.subtle.digest('SHA-256', bytes);
+	const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+	return new Request(`${new URL(request.url).pathname}?body=${hex}`);
+}
 
 self.addEventListener('fetch', (event) => {
-	// ignore POST requests etc
-	if (event.request.method !== 'GET') {
+	const { request } = event;
+	const url = new URL(request.url);
+
+	if (request.method !== 'POST' || !url.pathname.startsWith('/api/search/')) {
 		return;
 	}
 
-	async function respond() {
-		const url = new URL(event.request.url);
-		const cache = await caches.open(CACHE);
+	event.respondWith(
+		(async () => {
+			const cache = await caches.open(SEARCH_CACHE);
+			const key = await searchCacheKey(request);
 
-		// `build`/`files` can always be served from the cache
-		if (ASSETS.includes(url.pathname)) {
-			const response = await cache.match(url.pathname);
-
-			if (response) {
+			// Network-first: search results should be fresh whenever possible: the
+			// cache is only a fallback for offline/flaky-connection use, not a way
+			// to skip fetching newer results while online.
+			try {
+				const response = await fetch(request);
+				if (response.ok) cache.put(key, response.clone());
 				return response;
+			} catch (err) {
+				const cached = await cache.match(key);
+				if (cached) return cached;
+				throw err;
 			}
-		}
+		})()
+	);
+});
 
-		// for everything else, try the network first, but
-		// fall back to the cache if we're offline
-		try {
-			const response = await fetch(event.request);
-
-			// if we're offline, fetch can return a value that is not a Response
-			// instead of throwing - and we can't pass this non-Response to respondWith
-			if (!(response instanceof Response)) {
-				throw new Error('invalid response from fetch');
+self.addEventListener('activate', (event) => {
+	event.waitUntil(
+		(async () => {
+			for (const key of await caches.keys()) {
+				if (key.startsWith('search-results-') && key !== SEARCH_CACHE) {
+					await caches.delete(key);
+				}
 			}
-
-			if (response.status === 200) {
-				cache.put(event.request, response.clone());
-			}
-
-			return response;
-		} catch (err) {
-			const response = await cache.match(event.request);
-
-			if (response) {
-				return response;
-			}
-
-			// if there's no cache, then just error out
-			// as there is nothing we can do to respond to this request
-			throw err;
-		}
-	}
-
-	event.respondWith(respond());
+		})()
+	);
 });

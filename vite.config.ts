@@ -17,35 +17,23 @@ export default defineConfig({
 				props.mode = 'url';
 			}
 		}),
-		SvelteKitPWA()
-		/*{
+		SvelteKitPWA({
+			// static/manifest.json is already hand-written and linked from app.html;
+			// don't have vite-pwa generate/inject a second one.
+			manifest: false,
+			// src/service-worker.js is a real Workbox service worker (precaching +
+			// runtime image caching) rather than the plugin's auto-generated one.
 			strategies: 'injectManifest',
 			srcDir: 'src',
 			filename: 'service-worker.js',
-			manifest: {
-				name: 'Viz.rs',
-				short_name: 'Viz.rs',
-				theme_color: '#ff3e00',
-				icons: [
-					{
-						src: 'favicon.png',
-						sizes: '16x16',
-						type: 'image/png'
-					},
-					{
-						src: 'favicon.png',
-						sizes: '32x32',
-						type: 'image/png'
-					},
-					{
-						src: 'favicon.png',
-						sizes: '48x48',
-						type: 'image/png'
-					}
-				]
+			injectManifest: {
+				globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}']
+			},
+			devOptions: {
+				enabled: true,
+				type: 'module'
 			}
-			// other pwa options 
-		} */
+		})
 	],
 	server: {
 		allowedHosts: true,

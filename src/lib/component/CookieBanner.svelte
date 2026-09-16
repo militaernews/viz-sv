@@ -8,10 +8,10 @@
 			body: 'By using this site, you agree with our use of cookies'
 		},
 		theme: {
-			primary: '#14cabf',
-			dark: '#131f37',
-			medium: '#b0bfd9',
-			light: '#fff'
+			primary: '#e6a527',
+			dark: '#14283f',
+			medium: '#a89e8e',
+			light: '#fff7e8'
 		}
 	};
 </script>

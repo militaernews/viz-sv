@@ -8,6 +8,7 @@ import { message, superValidate } from 'sveltekit-superforms/server';
 
 import { valibot } from 'sveltekit-superforms/adapters';
 import type { SearchResult } from '$lib/SearchResult';
+import { backendFetch } from '$lib/server/backend';
 
 export const load: PageServerLoad = async () => {
 	let meta: MetaResponse | null = null;
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async () => {
 	try {
 		// Fetch available collections from the meta endpoint
 
-		const response = await fetch('http://localhost:3000/meta');
+		const response = await backendFetch('/meta');
 
 		if (response.ok) {
 			meta = await response.json();
@@ -67,7 +68,7 @@ export const actions = {
 
 				console.log('Posting tag search request...', requestBody);
 
-				response = await fetch('http://localhost:3000/search/tags', {
+				response = await backendFetch('/search/tags', {
 					method: 'POST',
 
 					headers: {
@@ -101,7 +102,7 @@ export const actions = {
 
 				console.log('Posting image search request...', body, searchParams);
 
-				response = await fetch('http://localhost:3000/search/images', {
+				response = await backendFetch('/search/images', {
 					method: 'POST',
 
 					body

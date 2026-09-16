@@ -1,18 +1,21 @@
 # Step 1: Build the application
-FROM oven/bun AS builder
+FROM oven/bun:1.4.2 AS builder
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy all the application files to the container
-COPY . .
+# Copy lockfile + manifest first so `bun install` is cached across builds
+# whenever only source files change.
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-# Run your build process
-RUN bun i
+COPY . .
 RUN bun run build
 
 # Step 2: Create a smaller image for running the application
-FROM oven/bun
+FROM oven/bun:1.4.2-slim
+
+WORKDIR /app
 
 # Copy only the necessary files from the builder image to the final image
 COPY --from=builder /app/build .

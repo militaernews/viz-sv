@@ -1,31 +1,36 @@
 <script lang="ts">
-	import FluentCalendar24Regular from '~icons/fluent/calendar-24-regular';
-
 	interface Props {
-		startDate: string;
-		endDate: string;
+		startDate: Date | undefined;
+		endDate: Date | undefined;
 	}
 
 	let { startDate = $bindable(), endDate = $bindable() }: Props = $props();
+
+	// Native date inputs speak yyyy-mm-dd strings; the form schema speaks Date.
+	function toInputValue(date: Date | undefined): string {
+		return date ? date.toISOString().slice(0, 10) : '';
+	}
+
+	function fromInputValue(value: string): Date | undefined {
+		return value ? new Date(value) : undefined;
+	}
 </script>
 
-<div>
-	<div class="mb-2 flex items-center gap-2">
-		<FluentCalendar24Regular class="text-base-content/60 h-3 w-3" />
-		<span class="text-base-content/80 text-xs font-medium">Date Range</span>
-	</div>
-	<div class="space-y-1">
-		<input
-			type="date"
-			bind:value={startDate}
-			name="startDate"
-			class="input input-bordered input-xs w-full"
-		/>
-		<input
-			type="date"
-			bind:value={endDate}
-			name="endDate"
-			class="input input-bordered input-xs w-full"
-		/>
-	</div>
+<div class="flex min-w-0 gap-1.5">
+	<input
+		type="date"
+		value={toInputValue(startDate)}
+		oninput={(e) => (startDate = fromInputValue(e.currentTarget.value))}
+		name="startDate"
+		title="From"
+		class="field-control min-w-0 flex-1 rounded-full px-3 py-2 text-xs"
+	/>
+	<input
+		type="date"
+		value={toInputValue(endDate)}
+		oninput={(e) => (endDate = fromInputValue(e.currentTarget.value))}
+		name="endDate"
+		title="To"
+		class="field-control min-w-0 flex-1 rounded-full px-3 py-2 text-xs"
+	/>
 </div>
