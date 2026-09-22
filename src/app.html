@@ -17,6 +17,13 @@
 			content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
 		/>
 		<meta name="theme-color" content="#0c1929" />
+		<!-- Tells the browser this page already handles dark mode itself, so it
+		     doesn't apply its own heuristic auto-dark-content rewriting on top -
+		     that rewriting is a known source of panels rendering with the wrong
+		     (often transparent-looking) background on some Android/Chrome PWA
+		     installs, since it can misinterpret CSS color-mix()/custom-property
+		     based colors it doesn't fully understand. -->
+		<meta name="color-scheme" content="dark" />
 		%sveltekit.head%
 	</head>
 
