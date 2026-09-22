@@ -163,10 +163,20 @@
 		}
 	}
 
+	// Gates the hero-mode CSS transition (see markup below): stays false
+	// through the initial restore so a page load that already has cached
+	// results jumps straight to the compact layout instead of visibly
+	// animating hero -> compact. Flips true a frame later so the collapse
+	// still animates once a real search starts.
+	let readyForTransition = $state(false);
+
 	$effect(() => {
 		restoreImage();
 		restoreSearchInputs();
 		restoreLastResults();
+		requestAnimationFrame(() => {
+			readyForTransition = true;
+		});
 	});
 
 	// Re-persists search inputs whenever tags/dates/collection change.
@@ -452,7 +462,9 @@
 	     when there's nothing to show yet, then quickly collapses to 0 the
 	     moment a search starts, so the bar reads as sliding up into place. -->
 	<div
-		class="overflow-hidden transition-[height] duration-150 ease-in {heroMode ? 'h-[52vh]' : 'h-0'}"
+		class="overflow-hidden {readyForTransition
+			? 'transition-[height] duration-150 ease-in'
+			: ''} {heroMode ? 'h-[52vh]' : 'h-0'}"
 	>
 		<div class="flex h-full flex-col items-center justify-end px-4 pb-8 text-center">
 			<h1 class="editorial-title text-base-content text-4xl sm:text-5xl">MN Viz</h1>
@@ -465,9 +477,9 @@
 	<!-- Header: mix-sv-style compact search bar (pill inputs, tight rows) -->
 	<div class="border-base-content/15 bg-base-100 sticky top-0 z-20 border-b">
 		<div
-			class="container mx-auto max-w-7xl px-3 {heroMode
-				? 'py-6'
-				: 'py-2'} transition-[padding] duration-150 ease-in"
+			class="container mx-auto max-w-7xl px-3 {heroMode ? 'py-6' : 'py-2'} {readyForTransition
+				? 'transition-[padding] duration-150 ease-in'
+				: ''}"
 		>
 			<form onsubmit={handleSubmit} class="flex flex-col gap-2">
 				<!-- Row 1: tag input, image upload, search - all in one row -->

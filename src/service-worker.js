@@ -1,6 +1,16 @@
 /// <reference types="@sveltejs/kit" />
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { clientsClaim } from 'workbox-core';
+
+// Without these, a new deploy's service worker installs but sits "waiting"
+// until every open tab of the site is fully closed - until then, browsers
+// keep serving the *previous* precached JS/CSS bundle, so a fix can look
+// like it never shipped even though the new code is already live. Skipping
+// the wait and claiming existing clients makes a new deploy take over
+// immediately instead.
+self.skipWaiting();
+clientsClaim();
 
 // Precaches the app shell (build output + static/ files) - vite-pwa injects the
 // manifest into self.__WB_MANIFEST at build time.

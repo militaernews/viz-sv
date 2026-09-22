@@ -24,6 +24,12 @@
 	// sized via aspect-ratio to exactly match the rendered image (object-contain
 	// with no letterboxing), so container pixels map 1:1 onto the image.
 	let rect = $state({ x: 0, y: 0, w: 0, h: 0 });
+	let sizeError = $state('');
+
+	// Serverless hosts (e.g. Vercel) cap request bodies around 4.5MB; stay
+	// safely under that so a too-large crop fails with a clear message here
+	// instead of a cryptic "invalid multipart data" error from the backend.
+	const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 	type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se' | null;
 	let dragMode: DragMode = null;
@@ -37,6 +43,7 @@
 			naturalWidth = 0;
 			naturalHeight = 0;
 			rect = { x: 0, y: 0, w: 0, h: 0 };
+			sizeError = '';
 			return () => URL.revokeObjectURL(url);
 		}
 		objectUrl = '';
@@ -145,6 +152,12 @@
 		);
 		if (!blob) return;
 
+		if (blob.size > MAX_IMAGE_BYTES) {
+			sizeError = `This crop is ${(blob.size / (1024 * 1024)).toFixed(1)}MB - too large to search by. Try selecting a smaller area.`;
+			return;
+		}
+		sizeError = '';
+
 		onConfirm(new File([blob], file.name, { type: blob.type }));
 	}
 
@@ -197,6 +210,10 @@
 					{/each}
 				{/if}
 			</div>
+
+			{#if sizeError}
+				<p class="text-xs text-red-400">{sizeError}</p>
+			{/if}
 
 			<div class="flex gap-3">
 				<Button variant="subtle" icon={FluentDismiss24Regular} grow onclick={onCancel}
