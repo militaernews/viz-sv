@@ -1,7 +1,6 @@
 <script lang="ts">
 	import FluentOpen24Regular from '~icons/fluent/open-24-regular';
 	import FluentChat24Regular from '~icons/fluent/chat-24-regular';
-	import FluentCloudWords24Regular from '~icons/fluent/cloud-words-24-regular';
 	import FluentLink24Regular from '~icons/fluent/link-24-regular';
 	import FluentDatabase24Regular from '~icons/fluent/database-24-regular';
 
@@ -25,10 +24,6 @@
 			: details?.user_name
 				? `https://t.me/${details.user_name}/${details.msg_id}`
 				: ''
-	);
-
-	const backupLink: string = $derived(
-		details?.msg_id ? `https://t.me/nn_backup/${details.msg_id}` : ''
 	);
 
 	const inviteLink: string = $derived(
@@ -61,7 +56,7 @@
 
 			{#if details.tags?.length}
 				<div class="flex flex-wrap gap-2">
-					{#each details.tags as tag, i}
+					{#each details.tags as tag, i (tag)}
 						<Badge tone={tagTone(i)} size="xs">{tag}</Badge>
 					{/each}
 				</div>
@@ -102,20 +97,6 @@
 						grow
 					>
 						Join Chat
-					</Button>
-				{/if}
-
-				{#if backupLink}
-					<Button
-						href={backupLink}
-						target="_blank"
-						rel="noopener noreferrer"
-						variant="subtle"
-						icon={FluentCloudWords24Regular}
-						iconRight={FluentOpen24Regular}
-						grow
-					>
-						Backup
 					</Button>
 				{/if}
 
