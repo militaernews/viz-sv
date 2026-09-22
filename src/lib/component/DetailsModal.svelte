@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FluentOpen24Regular from '~icons/fluent/open-24-regular';
 	import FluentChat24Regular from '~icons/fluent/chat-24-regular';
+	import FluentCloudWords24Regular from '~icons/fluent/cloud-words-24-regular';
 	import FluentLink24Regular from '~icons/fluent/link-24-regular';
 	import FluentDatabase24Regular from '~icons/fluent/database-24-regular';
 
@@ -28,6 +29,12 @@
 
 	const inviteLink: string = $derived(
 		details?.invite_hash ? `https://t.me/joinchat/${details.invite_hash}` : ''
+	);
+
+	// tg-nn forwards every source post into nn_backup and records the mapping
+	// server-side; backup_msg_id is only present when that mapping exists.
+	const backupLink: string = $derived(
+		details?.backup_msg_id ? `https://t.me/nn_backup/${details.backup_msg_id}` : ''
 	);
 
 	// mix-sv is the companion admin tool that holds full source/channel metadata.
@@ -97,6 +104,20 @@
 						grow
 					>
 						Join Chat
+					</Button>
+				{/if}
+
+				{#if backupLink}
+					<Button
+						href={backupLink}
+						target="_blank"
+						rel="noopener noreferrer"
+						variant="subtle"
+						icon={FluentCloudWords24Regular}
+						iconRight={FluentOpen24Regular}
+						grow
+					>
+						Backup
 					</Button>
 				{/if}
 
