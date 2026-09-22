@@ -184,39 +184,18 @@
 		persistSearchInputs();
 	});
 
-	// Convert image to base64
-	async function imageToBase64(imageUrl: string): Promise<string> {
-		try {
-			const response = await fetch(imageUrl);
-			const blob = await response.blob();
-			return new Promise((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = () => resolve(reader.result as string);
-				reader.onerror = reject;
-				reader.readAsDataURL(blob);
-			});
-		} catch (error) {
-			console.error('Failed to convert image to base64:', error);
-			return '';
-		}
-	}
-
 	// Save search results to history
 	async function saveToHistory(results: SearchResult[], searchParams?: Record<string, unknown>) {
 		if (!browser || results.length === 0) return;
 
 		try {
-			const resultsWithBase64 = await Promise.all(
-				results.map(async (result) => ({
-					...result,
-					img: result.img.startsWith('data:') ? result.img : await imageToBase64(result.img)
-				}))
-			);
-
+			// result.img is already raw base64 (see SearchResultCell/DetailsModal,
+			// which both render it directly as `data:image/png;base64,${img}`) -
+			// there is no separate image URL to fetch here.
 			const historyEntry: SearchHistoryEntry = {
 				id: crypto.randomUUID(),
 				timestamp: Date.now(),
-				results: resultsWithBase64,
+				results,
 				searchParams: {
 					...searchParams,
 					tags: $form.tags ?? [],

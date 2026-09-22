@@ -17,6 +17,22 @@
 		inTelegram = !!getTelegramWebApp();
 	});
 
+	// Actively checks for a new service worker on every load instead of
+	// waiting for the browser's own (slower, sometimes-throttled) update
+	// heuristics, and reloads once the new one takes over - installed PWAs in
+	// particular can otherwise keep serving an old cached build for a long
+	// time even after skipWaiting()/clientsClaim() ship a new deploy.
+	$effect(() => {
+		if (!browser || !('serviceWorker' in navigator)) return;
+
+		navigator.serviceWorker.getRegistration().then((registration) => registration?.update());
+
+		const onControllerChange = () => location.reload();
+		navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+		return () =>
+			navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+	});
+
 	// Telegram's native back button replaces our own nav when embedded.
 	$effect(() => {
 		const webApp = browser ? getTelegramWebApp() : undefined;
