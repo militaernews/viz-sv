@@ -438,7 +438,7 @@
 			text: isSearching ? 'Searching…' : 'Search',
 			enabled: canSearch() && !isSearching,
 			loading: isSearching,
-			onClick: () => performSearch()
+			onClick: performSearch
 		});
 	});
 
