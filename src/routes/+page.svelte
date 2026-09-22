@@ -1,22 +1,25 @@
 <script lang="ts">
 	import DetailsModal from '$lib/component/DetailsModal.svelte';
 	import SearchResultCell from '$lib/component/SearchResultCell.svelte';
+	import ImageCropPicker from '$lib/component/ImageCropPicker.svelte';
+	import WelcomeTutorial from '$lib/component/WelcomeTutorial.svelte';
 	import { browser } from '$app/environment';
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentHistory24Regular from '~icons/fluent/history-24-regular';
 	import FluentImage24Regular from '~icons/fluent/image-24-regular';
-	import FluentTag24Regular from '~icons/fluent/tag-24-regular';
+	import FluentCrop24Regular from '~icons/fluent/crop-24-regular';
 	import type { SearchResult } from '$lib/SearchResult';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
 	import DateFilter from '$lib/component/DateFilter.svelte';
 	import TagsInput from '$lib/component/TagsInput.svelte';
 	import CollectionSelector from '$lib/component/CollectionSelector.svelte';
 	import Button from '$lib/component/ui/Button.svelte';
+	import IconButton from '$lib/component/ui/IconButton.svelte';
 	import { superForm } from 'sveltekit-superforms/client';
 	import { getTelegramWebApp, haptic, useMainButton } from '$lib/telegram';
 
 	let { data } = $props();
-	const { form, errors, enhance } = superForm(data.form);
+	const { form } = superForm(data.form);
 
 	// Set default collection value
 	$effect(() => {
@@ -40,13 +43,16 @@
 	let fileInput: HTMLInputElement;
 	let tagInput = $state('');
 	let tagInputElement: HTMLInputElement;
-	let selectedCollection = $state('images');
 	let detailsOpen = $state(false);
 	let details: SearchResult | null = $state(null);
+	let cropPickerOpen = $state(false);
+	let rawImageFile: File | null = $state(null);
 
 	// Local storage keys
 	const HISTORY_STORAGE_KEY = 'search_history_v2';
 	const IMAGE_STORAGE_KEY = 'last_uploaded_image';
+	const SEARCH_INPUTS_STORAGE_KEY = 'search_inputs_v1';
+	const LAST_RESULTS_STORAGE_KEY = 'last_search_results_v1';
 
 	function fileToDataUrl(file: File): Promise<string> {
 		return new Promise((resolve, reject) => {
@@ -72,7 +78,10 @@
 		if (!browser) return;
 		try {
 			const dataUrl = await fileToDataUrl(file);
-			localStorage.setItem(IMAGE_STORAGE_KEY, JSON.stringify({ name: file.name, type: file.type, dataUrl }));
+			localStorage.setItem(
+				IMAGE_STORAGE_KEY,
+				JSON.stringify({ name: file.name, type: file.type, dataUrl })
+			);
 		} catch (error) {
 			console.error('Failed to persist uploaded image:', error);
 		}
@@ -95,8 +104,75 @@
 		if (browser) localStorage.removeItem(IMAGE_STORAGE_KEY);
 	}
 
+	// Keeps the tag/date/collection inputs around across a reload, same as the
+	// uploaded image.
+	function persistSearchInputs() {
+		if (!browser) return;
+		try {
+			localStorage.setItem(
+				SEARCH_INPUTS_STORAGE_KEY,
+				JSON.stringify({
+					tags: $form.tags ?? [],
+					startDate: $form.startDate?.toISOString() ?? null,
+					endDate: $form.endDate?.toISOString() ?? null,
+					collection: $form.collection ?? ''
+				})
+			);
+		} catch (error) {
+			console.error('Failed to persist search inputs:', error);
+		}
+	}
+
+	function restoreSearchInputs() {
+		if (!browser) return;
+		try {
+			const raw = localStorage.getItem(SEARCH_INPUTS_STORAGE_KEY);
+			if (!raw) return;
+			const inputs = JSON.parse(raw);
+			if (inputs.tags?.length) $form.tags = inputs.tags;
+			if (inputs.startDate) $form.startDate = new Date(inputs.startDate);
+			if (inputs.endDate) $form.endDate = new Date(inputs.endDate);
+			if (inputs.collection) $form.collection = inputs.collection;
+		} catch (error) {
+			console.error('Failed to restore search inputs:', error);
+		}
+	}
+
+	// Keeps the last result grid around across a reload too, so the page isn't
+	// blank again until the next search.
+	function persistLastResults(results: SearchResult[]) {
+		if (!browser) return;
+		try {
+			localStorage.setItem(LAST_RESULTS_STORAGE_KEY, JSON.stringify(results));
+		} catch (error) {
+			console.error('Failed to persist last search results:', error);
+		}
+	}
+
+	function restoreLastResults() {
+		if (!browser) return;
+		try {
+			const raw = localStorage.getItem(LAST_RESULTS_STORAGE_KEY);
+			if (!raw) return;
+			const results: SearchResult[] = JSON.parse(raw);
+			if (results.length > 0) {
+				searchResults = results;
+				hasSearched = true;
+			}
+		} catch (error) {
+			console.error('Failed to restore last search results:', error);
+		}
+	}
+
 	$effect(() => {
 		restoreImage();
+		restoreSearchInputs();
+		restoreLastResults();
+	});
+
+	// Re-persists search inputs whenever tags/dates/collection change.
+	$effect(() => {
+		persistSearchInputs();
 	});
 
 	// Convert image to base64
@@ -117,7 +193,7 @@
 	}
 
 	// Save search results to history
-	async function saveToHistory(results: SearchResult[], searchParams?: any) {
+	async function saveToHistory(results: SearchResult[], searchParams?: Record<string, unknown>) {
 		if (!browser || results.length === 0) return;
 
 		try {
@@ -134,11 +210,9 @@
 				results: resultsWithBase64,
 				searchParams: {
 					...searchParams,
-					tags: $form.tags,
-					startDate: $form.startDate,
-					endDate: $form.endDate,
-					collection: selectedCollection,
-					searchType: $form.searchType
+					tags: $form.tags ?? [],
+					startDate: $form.startDate?.toISOString() ?? '',
+					endDate: $form.endDate?.toISOString() ?? ''
 				}
 			};
 
@@ -210,14 +284,12 @@
 			searchResults = results;
 			hasSearched = true;
 			haptic(results.length > 0 ? 'success' : 'medium');
+			persistLastResults(results);
 
 			// Save to history
 			await saveToHistory(results, {
 				searchType: $form.searchType,
 				imageFileName: $form.image?.name || '',
-				tags: $form.tags,
-				startDate: $form.startDate || '',
-				endDate: $form.endDate || '',
 				collection: $form.collection
 			});
 		} catch (error) {
@@ -229,8 +301,15 @@
 	}
 
 	// Handle form submission
+	let showValidationError = $state(false);
+
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
+		if (!canSearch()) {
+			showValidationError = true;
+			return;
+		}
+		showValidationError = false;
 		await performSearch();
 	}
 
@@ -242,8 +321,11 @@
 
 	function handleFileChange(event: Event) {
 		const target = event.target as HTMLInputElement;
-		$form.image = target.files?.[0];
-		if ($form.image) persistImage($form.image);
+		const file = target.files?.[0];
+		if (file) {
+			rawImageFile = file;
+			cropPickerOpen = true;
+		}
 	}
 
 	function handleDrag(e: DragEvent) {
@@ -257,18 +339,35 @@
 		e.stopPropagation();
 		dragActive = false;
 
-		if (e.dataTransfer?.files?.[0]) {
+		const file = e.dataTransfer?.files?.[0];
+		if (file) {
 			const dt = new DataTransfer();
-			dt.items.add(e.dataTransfer.files[0]);
+			dt.items.add(file);
 			fileInput.files = dt.files;
-			$form.image = e.dataTransfer.files[0];
-			persistImage($form.image);
+			rawImageFile = file;
+			cropPickerOpen = true;
 		}
 	}
 
 	function initiateImageUpload() {
 		if (!isLoading && !isSearching) {
 			fileInput.click();
+		}
+	}
+
+	// The picker crops the raw upload down to the area the user wants to
+	// search by, Google-Lens style, before it becomes the actual search image.
+	function handleCropConfirm(croppedFile: File) {
+		$form.image = croppedFile;
+		persistImage(croppedFile);
+		cropPickerOpen = false;
+	}
+
+	function handleCropCancel() {
+		cropPickerOpen = false;
+		if (!$form.image) {
+			rawImageFile = null;
+			if (fileInput) fileInput.value = '';
 		}
 	}
 
@@ -299,18 +398,16 @@
 	}
 
 	// Derived reactive values using runes
-	const uploadStatus = $derived(isSearching ? 'loading' : searchError ? 'error' : 'idle');
 	const hasImage = $derived(!!$form.image);
 	const selectedFileName = $derived($form.image?.name || '');
+	// Falls back to the already-cropped image so "adjust crop" still works
+	// after a reload, when only the cropped result was persisted.
+	const cropSourceFile = $derived(rawImageFile ?? $form.image ?? null);
 
-	// Validation for search readiness
-	const canSearch = $derived(() => {
-		if ($form.searchType === 'image') {
-			return hasImage;
-		} else {
-			return ($form.tags?.length || 0) > 0;
-		}
-	});
+	// Tag input and image upload sit side by side now (no mode toggle) - either
+	// one satisfies search readiness.
+	const canSearch = $derived(() => hasImage || ($form.tags?.length || 0) > 0);
+	const missingBoth = $derived(showValidationError && !hasImage && ($form.tags?.length || 0) === 0);
 
 	let inTelegram = $state(false);
 	$effect(() => {
@@ -331,9 +428,12 @@
 		});
 	});
 
-	// Auto-switch search type when tags are added/removed
+	// Tag input and image upload are both visible at once; the backend only
+	// supports one mode per request, so an attached image takes priority.
 	$effect(() => {
-		if (($form.tags?.length || 0) > 0 && $form.searchType === 'image' && !hasImage) {
+		if (hasImage) {
+			$form.searchType = 'image';
+		} else if (($form.tags?.length || 0) > 0) {
 			$form.searchType = 'tags';
 		}
 	});
@@ -345,96 +445,20 @@
 
 <div class="min-h-screen">
 	<!-- Header: mix-sv-style compact search bar (pill inputs, tight rows) -->
-	<div class="sticky top-0 z-20 border-b border-base-content/15 bg-neutral/95">
+	<div class="border-base-content/15 bg-neutral sticky top-0 z-20 border-b">
 		<div class="container mx-auto max-w-7xl px-3 py-2">
 			<form onsubmit={handleSubmit} class="flex flex-col gap-2">
-				<!-- Row 1: type toggle + collection (left), history (right) -->
-				<div class="flex flex-wrap items-center gap-1.5">
-					<Button
-						type="button"
-						size="xs"
-						variant={$form.searchType === 'image' ? 'primary' : 'subtle'}
-						icon={FluentImage24Regular}
-						onclick={() => ($form.searchType = 'image')}
-					>
-						Image
-					</Button>
-					<Button
-						type="button"
-						size="xs"
-						variant={$form.searchType === 'tags' ? 'primary' : 'subtle'}
-						icon={FluentTag24Regular}
-						onclick={() => ($form.searchType = 'tags')}
-					>
-						Tags
-					</Button>
-
-					<div class="w-32 min-w-0">
-						<CollectionSelector bind:selectedCollection={$form.collection} collections={data.meta?.datasets ?? {}} />
-					</div>
-
-					<Button
-						href="/history"
-						size="xs"
-						variant="secondary"
-						icon={FluentHistory24Regular}
-						class="ml-auto hidden lg:inline-flex"
-					>
-						History
-					</Button>
-				</div>
-
-				<!-- Row 2: date range + search input (left/middle), search button (very right) -->
-				<div class="flex items-center gap-1.5">
-					<div class="w-64 min-w-0 shrink-0">
-						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
-					</div>
-
+				<!-- Row 1: tag input, image upload, search - all in one row -->
+				<div
+					class="flex items-center gap-1.5 rounded-full transition-shadow {dragActive
+						? 'ring-primary ring-2'
+						: ''}"
+					ondragenter={handleDrag}
+					ondragover={handleDrag}
+					ondragleave={handleDrag}
+					ondrop={handleDrop}
+				>
 					<div class="min-w-0 flex-1">
-					{#if $form.searchType === 'image'}
-						<div
-							class="field-control flex min-h-[38px] cursor-pointer items-center justify-between gap-3 rounded-2xl border border-dashed px-4 py-2 text-sm transition-colors {dragActive
-								? 'border-primary bg-primary/10'
-								: ''}"
-							role="button"
-							tabindex="0"
-							onclick={() => !hasImage && initiateImageUpload()}
-							onkeydown={(e) => {
-								if ((e.key === 'Enter' || e.key === ' ') && !hasImage) {
-									e.preventDefault();
-									initiateImageUpload();
-								}
-							}}
-							ondragenter={handleDrag}
-							ondragover={handleDrag}
-							ondragleave={handleDrag}
-							ondrop={handleDrop}
-						>
-							{#if hasImage}
-								<span class="min-w-0 truncate font-medium text-primary">📁 {selectedFileName}</span>
-								<button
-									type="button"
-									onclick={(e) => {
-										e.stopPropagation();
-										clearImage();
-									}}
-									class="shrink-0 cursor-pointer text-base-content/50 transition-colors hover:text-red-400"
-									aria-label="Remove image"
-								>
-									×
-								</button>
-							{:else}
-								<span class="text-base-content/60">Click or drag & drop an image to search…</span>
-							{/if}
-						</div>
-						<input
-							bind:this={fileInput}
-							type="file"
-							accept="image/*"
-							class="hidden"
-							onchange={handleFileChange}
-						/>
-					{:else}
 						<TagsInput
 							tags={$form.tags || []}
 							bind:tagInput
@@ -442,22 +466,81 @@
 							onAddTag={addTag}
 							onRemoveTag={removeTag}
 							onTagKeydown={handleTagKeydown}
+							invalid={missingBoth}
 						/>
-					{/if}
 					</div>
+
+					<div class="relative shrink-0">
+						<IconButton
+							type="button"
+							icon={hasImage ? FluentCrop24Regular : FluentImage24Regular}
+							label={hasImage
+								? `Adjust image crop (${selectedFileName})`
+								: 'Upload an image to search'}
+							variant={hasImage ? 'primary' : 'subtle'}
+							onclick={() => (hasImage ? (cropPickerOpen = true) : initiateImageUpload())}
+							style={missingBoth ? 'box-shadow: 0 0 0 2px var(--color-error)' : undefined}
+						/>
+						{#if hasImage}
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									clearImage();
+								}}
+								class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] leading-none text-white"
+								aria-label="Remove image"
+							>
+								×
+							</button>
+						{/if}
+					</div>
+
+					<input
+						bind:this={fileInput}
+						type="file"
+						accept="image/*"
+						class="hidden"
+						onchange={handleFileChange}
+					/>
 
 					{#if !inTelegram}
 						<Button
 							type="submit"
 							size="xs"
-							disabled={isSearching || !canSearch()}
+							shape="circle"
+							disabled={isSearching}
 							loading={isSearching}
 							icon={FluentSearch24Regular}
-							class="ml-auto"
-						>
-							{isSearching ? 'Searching…' : 'Search'}
-						</Button>
+							aria-label="Search"
+						/>
 					{/if}
+				</div>
+				{#if showValidationError && missingBoth}
+					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image to search.</p>
+				{/if}
+
+				<!-- Row 2: collection + date range (left), history (right) -->
+				<div class="flex items-center gap-1.5">
+					<div class="w-32 min-w-0 shrink-0">
+						<CollectionSelector
+							bind:selectedCollection={$form.collection}
+							collections={data.meta?.datasets ?? {}}
+						/>
+					</div>
+
+					<div class="min-w-0 flex-1">
+						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
+					</div>
+
+					<Button
+						href="/history"
+						size="xs"
+						shape="circle"
+						variant="secondary"
+						icon={FluentHistory24Regular}
+						aria-label="History"
+					/>
 				</div>
 			</form>
 		</div>
@@ -475,7 +558,7 @@
 	<!-- Results -->
 	{#if isSearching}
 		<div class="container mx-auto max-w-7xl px-4 py-16">
-			<div class="flex items-center justify-center gap-2 text-base-content/70">
+			<div class="text-base-content/70 flex items-center justify-center gap-2">
 				<span class="loading loading-spinner loading-md text-primary"></span>
 				<span class="text-sm">Searching…</span>
 			</div>
@@ -483,10 +566,10 @@
 	{:else if searchResults.length > 0}
 		<div class="fade_in container mx-auto max-w-7xl px-4 py-4">
 			<div class="mb-3 flex items-center justify-between">
-				<div class="text-sm text-base-content/70">
+				<div class="text-base-content/70 text-sm">
 					Found {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
 				</div>
-				<div class="text-xs text-base-content/60">
+				<div class="text-base-content/60 text-xs">
 					Total: {Object.values(data.meta?.datasets || {})
 						.reduce((a, b) => a + b, 0)
 						.toLocaleString()} items
@@ -495,7 +578,7 @@
 			<div
 				class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
 			>
-				{#each searchResults as result, index}
+				{#each searchResults as result, index (result.chat_id + '/' + result.msg_id)}
 					<SearchResultCell {result} onclick={() => showModal(index)} />
 				{/each}
 			</div>
@@ -504,11 +587,20 @@
 		<div class="container mx-auto max-w-7xl px-4 py-16">
 			<div class="panel-muted mx-auto max-w-md p-12 text-center">
 				<div class="text-4xl opacity-20">🔍</div>
-				<h3 class="editorial-title mt-4 text-lg text-base-content">No matches found</h3>
-				<p class="mt-2 text-sm text-base-content/60">Try different tags, a wider date range, or another collection.</p>
+				<h3 class="editorial-title text-base-content mt-4 text-lg">No matches found</h3>
+				<p class="text-base-content/60 mt-2 text-sm">
+					Try different tags, a wider date range, or another collection.
+				</p>
 			</div>
 		</div>
 	{/if}
 
 	<DetailsModal {details} bind:open={detailsOpen} />
+	<ImageCropPicker
+		bind:open={cropPickerOpen}
+		file={cropSourceFile}
+		onConfirm={handleCropConfirm}
+		onCancel={handleCropCancel}
+	/>
+	<WelcomeTutorial />
 </div>

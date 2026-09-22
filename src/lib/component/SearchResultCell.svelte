@@ -48,29 +48,29 @@
 			onerror={handleImageError}
 		/>
 
+		<div class="absolute top-2 right-2">
+			<Badge tone={similarityTone(result.similarity)} size="xs">
+				{Math.round(result.similarity * 100)}%
+			</Badge>
+		</div>
+
 		<div class="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
 			<div
 				class="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white"
 			>
 				#{result.msg_id}
 			</div>
-
-			<div class="absolute top-2 right-2">
-				<Badge tone={similarityTone(result.similarity)} size="xs">
-					{Math.round(result.similarity * 100)}%
-				</Badge>
-			</div>
 		</div>
 	</div>
 
 	<div class="p-3">
 		<h3
-			class="mb-2 line-clamp-2 text-sm font-medium text-base-content transition-colors group-hover:text-primary"
+			class="text-base-content group-hover:text-primary mb-2 line-clamp-2 text-sm font-medium transition-colors"
 		>
 			{result.display_name}
 		</h3>
 
-		<div class="text-xs text-base-content/60">
+		<div class="text-base-content/60 text-xs">
 			<time datetime={result.posted_at}>
 				{formatDate(result.posted_at)}
 			</time>

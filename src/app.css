@@ -212,37 +212,4 @@
 	.fade_in {
 		animation: fadeInAnimation 0.25s ease-in;
 	}
-
-	/* Mobile-app-style bottom nav; hidden on larger screens (see .dock in
-	   markup). Shares the panel system's border/shadow so it reads as the
-	   same surface language as the rest of the UI. */
-	.dock {
-		@apply fixed right-0 bottom-0 left-0 z-40 flex h-16 items-center justify-around px-2;
-		background-color: color-mix(in oklab, var(--color-neutral) 95%, transparent);
-		border-top: 1px solid color-mix(in oklab, var(--color-base-content) 15%, transparent);
-		box-shadow:
-			0 -14px 32px rgba(2, 10, 21, 0.2),
-			inset 0 1px 0 color-mix(in oklab, var(--color-base-content) 4%, transparent);
-		padding-bottom: env(safe-area-inset-bottom);
-	}
-
-	.dock a {
-		@apply flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-200;
-		color: var(--color-neutral-content);
-	}
-
-	.dock a.active {
-		color: color-mix(in oklab, var(--color-primary) 85%, var(--color-base-content));
-		background-color: color-mix(in oklab, var(--color-primary) 15%, transparent);
-		border: 1px solid color-mix(in oklab, var(--color-primary) 35%, transparent);
-	}
-
-	.dock a:active {
-		transform: scale(0.95);
-	}
-
-	/* Room for the fixed dock so content isn't hidden behind it. */
-	.dock-spacer {
-		padding-bottom: calc(4rem + env(safe-area-inset-bottom));
-	}
 }

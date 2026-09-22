@@ -2,9 +2,9 @@
 	import '../app.css';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import CookieBanner from '$lib/component/CookieBanner.svelte';
-	import DockNav from '$lib/component/DockNav.svelte';
 	import { getTelegramWebApp, initTelegramWebApp } from '$lib/telegram';
 
 	let { children } = $props();
@@ -28,18 +28,17 @@
 			return;
 		}
 
-		const goHome = () => goto('/');
+		const goHome = () => goto(resolve('/'));
 		webApp.BackButton.show();
 		webApp.BackButton.onClick(goHome);
 		return () => webApp.BackButton.offClick(goHome);
 	});
 </script>
 
-<div class="dock-spacer min-h-screen lg:pb-0">
+<div class="min-h-screen">
 	{@render children()}
 </div>
 
-<DockNav />
 {#if !inTelegram}
 	<CookieBanner />
 {/if}

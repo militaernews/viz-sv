@@ -56,7 +56,7 @@
 				<Badge tone={similarityTone(details.similarity)}>
 					{(details.similarity * 100).toFixed(1)}% match
 				</Badge>
-				<span class="text-xs text-base-content/60">{formatDate(details.posted_at)}</span>
+				<span class="text-base-content/60 text-xs">{formatDate(details.posted_at)}</span>
 			</div>
 
 			{#if details.tags?.length}

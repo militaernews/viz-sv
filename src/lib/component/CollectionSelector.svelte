@@ -32,5 +32,7 @@
 		{/each}
 	</select>
 {:else}
-	<div class="panel-muted rounded-full px-4 py-2 text-xs text-base-content/60 italic">No collections</div>
+	<div class="panel-muted text-base-content/60 rounded-full px-4 py-2 text-xs italic">
+		No collections
+	</div>
 {/if}

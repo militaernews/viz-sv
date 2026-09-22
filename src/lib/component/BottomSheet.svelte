@@ -39,14 +39,14 @@
 
 		<div class="animate-slide-up absolute inset-x-0 bottom-0">
 			<div
-				class="mx-auto flex max-h-[85vh] w-full max-w-3xl flex-col rounded-t-2xl border-t border-base-content/20 bg-base-100"
+				class="border-base-content/20 bg-base-100 mx-auto flex max-h-[85vh] w-full max-w-3xl flex-col rounded-t-2xl border-t"
 			>
 				<div class="relative flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
 					<div
-						class="absolute top-2 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-base-content/25"
+						class="bg-base-content/25 absolute top-2 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full"
 					></div>
 					{#if title}
-						<h3 class="editorial-title text-lg font-bold text-base-content">{title}</h3>
+						<h3 class="editorial-title text-base-content text-lg font-bold">{title}</h3>
 					{:else}
 						<div></div>
 					{/if}
