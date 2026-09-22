@@ -5,7 +5,6 @@
 	import WelcomeTutorial from '$lib/component/WelcomeTutorial.svelte';
 	import { browser } from '$app/environment';
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
-	import FluentHistory24Regular from '~icons/fluent/history-24-regular';
 	import FluentImage24Regular from '~icons/fluent/image-24-regular';
 	import FluentCrop24Regular from '~icons/fluent/crop-24-regular';
 	import type { SearchResult } from '$lib/SearchResult';
@@ -409,6 +408,11 @@
 	const canSearch = $derived(() => hasImage || ($form.tags?.length || 0) > 0);
 	const missingBoth = $derived(showValidationError && !hasImage && ($form.tags?.length || 0) === 0);
 
+	// True only while there's nothing to show yet - no restored last-search
+	// results, and no search in flight. Drives the centered "hero" placement;
+	// it collapses (see the spacer below) the moment a search starts.
+	const heroMode = $derived(!hasSearched && !isSearching);
+
 	let inTelegram = $state(false);
 	$effect(() => {
 		if (browser) inTelegram = !!getTelegramWebApp();
@@ -444,9 +448,27 @@
 </svelte:head>
 
 <div class="min-h-screen">
+	<!-- Hero spacer: pushes the sticky search bar down to roughly mid-screen
+	     when there's nothing to show yet, then quickly collapses to 0 the
+	     moment a search starts, so the bar reads as sliding up into place. -->
+	<div
+		class="overflow-hidden transition-[height] duration-150 ease-in {heroMode ? 'h-[52vh]' : 'h-0'}"
+	>
+		<div class="flex h-full flex-col items-center justify-end px-4 pb-8 text-center">
+			<h1 class="editorial-title text-base-content text-4xl sm:text-5xl">MN Viz</h1>
+			<p class="text-base-content/60 mt-3 text-sm">
+				Search the collection by tags or a reference image.
+			</p>
+		</div>
+	</div>
+
 	<!-- Header: mix-sv-style compact search bar (pill inputs, tight rows) -->
-	<div class="border-base-content/15 bg-neutral sticky top-0 z-20 border-b">
-		<div class="container mx-auto max-w-7xl px-3 py-2">
+	<div class="border-base-content/15 bg-base-100 sticky top-0 z-20 border-b">
+		<div
+			class="container mx-auto max-w-7xl px-3 {heroMode
+				? 'py-6'
+				: 'py-2'} transition-[padding] duration-150 ease-in"
+		>
 			<form onsubmit={handleSubmit} class="flex flex-col gap-2">
 				<!-- Row 1: tag input, image upload, search - all in one row -->
 				<div
@@ -473,6 +495,7 @@
 					<div class="relative shrink-0">
 						<IconButton
 							type="button"
+							size="lg"
 							icon={hasImage ? FluentCrop24Regular : FluentImage24Regular}
 							label={hasImage
 								? `Adjust image crop (${selectedFileName})`
@@ -507,7 +530,7 @@
 					{#if !inTelegram}
 						<Button
 							type="submit"
-							size="xs"
+							size="lg"
 							shape="circle"
 							disabled={isSearching}
 							loading={isSearching}
@@ -520,7 +543,7 @@
 					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image to search.</p>
 				{/if}
 
-				<!-- Row 2: collection + date range (left), history (right) -->
+				<!-- Row 2: collection + date range -->
 				<div class="flex items-center gap-1.5">
 					<div class="w-32 min-w-0 shrink-0">
 						<CollectionSelector
@@ -532,15 +555,6 @@
 					<div class="min-w-0 flex-1">
 						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
 					</div>
-
-					<Button
-						href="/history"
-						size="xs"
-						shape="circle"
-						variant="secondary"
-						icon={FluentHistory24Regular}
-						aria-label="History"
-					/>
 				</div>
 			</form>
 		</div>

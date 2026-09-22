@@ -17,20 +17,42 @@
 </script>
 
 <div class="flex min-w-0 gap-1.5">
-	<input
-		type="date"
-		value={toInputValue(startDate)}
-		oninput={(e) => (startDate = fromInputValue(e.currentTarget.value))}
-		name="startDate"
-		title="From"
-		class="field-control min-w-0 flex-1 rounded-full px-3 py-2 text-xs"
-	/>
-	<input
-		type="date"
-		value={toInputValue(endDate)}
-		oninput={(e) => (endDate = fromInputValue(e.currentTarget.value))}
-		name="endDate"
-		title="To"
-		class="field-control min-w-0 flex-1 rounded-full px-3 py-2 text-xs"
-	/>
+	<div class="relative min-w-0 flex-1">
+		<input
+			type="date"
+			value={toInputValue(startDate)}
+			oninput={(e) => (startDate = fromInputValue(e.currentTarget.value))}
+			name="startDate"
+			title="From"
+			class="field-control w-full min-w-0 rounded-full px-3 py-2 text-xs {startDate
+				? ''
+				: 'text-transparent'}"
+		/>
+		{#if !startDate}
+			<span
+				class="text-base-content/60 pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs"
+			>
+				From
+			</span>
+		{/if}
+	</div>
+	<div class="relative min-w-0 flex-1">
+		<input
+			type="date"
+			value={toInputValue(endDate)}
+			oninput={(e) => (endDate = fromInputValue(e.currentTarget.value))}
+			name="endDate"
+			title="Until"
+			class="field-control w-full min-w-0 rounded-full px-3 py-2 text-xs {endDate
+				? ''
+				: 'text-transparent'}"
+		/>
+		{#if !endDate}
+			<span
+				class="text-base-content/60 pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs"
+			>
+				Until
+			</span>
+		{/if}
+	</div>
 </div>

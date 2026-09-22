@@ -134,8 +134,15 @@
 		if (!ctx) return;
 		ctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-		const type = file.type || 'image/png';
-		const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.92));
+		// Always re-encode as JPEG regardless of the source format: this is a
+		// search query image, not a downloadable artifact, so the lossy
+		// compression is a non-issue - and PNG (the canvas default when a
+		// source file's type is missing) can run 3-10x larger than JPEG for a
+		// photo, which risks tripping the request body size limit serverless
+		// hosts (e.g. Vercel) impose on the multipart upload.
+		const blob: Blob | null = await new Promise((resolve) =>
+			canvas.toBlob(resolve, 'image/jpeg', 0.9)
+		);
 		if (!blob) return;
 
 		onConfirm(new File([blob], file.name, { type: blob.type }));

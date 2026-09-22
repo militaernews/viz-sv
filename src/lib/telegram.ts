@@ -81,8 +81,13 @@ function applyTheme(webApp: TelegramWebApp): void {
 	// every component (via Tailwind utilities like bg-base-100, or the
 	// color-mix()-based @utility classes in app.css) reads from - so this one
 	// mapping reaches the whole app, not just a hardcoded subset of surfaces.
+	// base-100 intentionally has no bg_color fallback: it's the color panels
+	// (the search header, bottom sheets) use to stand out from the page body,
+	// which is itself bg_color - falling back to the same value would make
+	// every panel blend invisibly into the page whenever a Telegram client
+	// doesn't supply a distinct secondary_bg_color.
 	const map: Record<string, string | undefined> = {
-		'--color-base-100': theme.secondary_bg_color ?? theme.bg_color,
+		'--color-base-100': theme.secondary_bg_color,
 		'--color-base-200': theme.section_bg_color ?? theme.secondary_bg_color,
 		'--color-base-300': theme.hint_color,
 		'--color-neutral': theme.bg_color,
