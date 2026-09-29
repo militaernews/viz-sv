@@ -7,11 +7,13 @@
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentImage24Regular from '~icons/fluent/image-24-regular';
 	import FluentCrop24Regular from '~icons/fluent/crop-24-regular';
-	import type { SearchResult } from '$lib/SearchResult';
+	import FluentVideo24Regular from '~icons/fluent/video-24-regular';
+	import { hitKey, type SearchHit } from '$lib/SearchHit';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
+	import { errorMessage, filterByDate, textQuery } from '$lib/search';
+	import { MAX_QUERY_CHARS, MAX_UPLOAD_BYTES } from './schema';
 	import DateFilter from '$lib/component/DateFilter.svelte';
 	import TagsInput from '$lib/component/TagsInput.svelte';
-	import CollectionSelector from '$lib/component/CollectionSelector.svelte';
 	import Button from '$lib/component/ui/Button.svelte';
 	import IconButton from '$lib/component/ui/IconButton.svelte';
 	import { superForm } from 'sveltekit-superforms/client';
@@ -20,18 +22,8 @@
 	let { data } = $props();
 	const { form } = superForm(data.form);
 
-	// Set default collection value
-	$effect(() => {
-		if (!$form.collection && data.meta?.datasets) {
-			const collections = Object.keys(data.meta.datasets);
-			if (collections.length > 0) {
-				$form.collection = collections[0];
-			}
-		}
-	});
-
 	// Search state using runes
-	let searchResults = $state<SearchResult[]>([]);
+	let searchResults = $state<SearchHit[]>([]);
 	let hasSearched = $state(false);
 	let isSearching = $state(false);
 	let searchError = $state<string | null>(null);
@@ -43,15 +35,15 @@
 	let tagInput = $state('');
 	let tagInputElement: HTMLInputElement;
 	let detailsOpen = $state(false);
-	let details: SearchResult | null = $state(null);
+	let details: SearchHit | null = $state(null);
 	let cropPickerOpen = $state(false);
 	let rawImageFile: File | null = $state(null);
 
-	// Local storage keys
-	const HISTORY_STORAGE_KEY = 'search_history_v2';
+	// Local storage keys (results keys bumped when the result shape changed to SearchHit)
+	const HISTORY_STORAGE_KEY = 'search_history_v3';
 	const IMAGE_STORAGE_KEY = 'last_uploaded_image';
 	const SEARCH_INPUTS_STORAGE_KEY = 'search_inputs_v1';
-	const LAST_RESULTS_STORAGE_KEY = 'last_search_results_v1';
+	const LAST_RESULTS_STORAGE_KEY = 'last_search_results_v2';
 
 	function fileToDataUrl(file: File): Promise<string> {
 		return new Promise((resolve, reject) => {
@@ -103,8 +95,8 @@
 		if (browser) localStorage.removeItem(IMAGE_STORAGE_KEY);
 	}
 
-	// Keeps the tag/date/collection inputs around across a reload, same as the
-	// uploaded image.
+	// Keeps the tag/date inputs around across a reload, same as the uploaded
+	// image. Videos are not persisted; they are too large for localStorage.
 	function persistSearchInputs() {
 		if (!browser) return;
 		try {
@@ -113,8 +105,7 @@
 				JSON.stringify({
 					tags: $form.tags ?? [],
 					startDate: $form.startDate?.toISOString() ?? null,
-					endDate: $form.endDate?.toISOString() ?? null,
-					collection: $form.collection ?? ''
+					endDate: $form.endDate?.toISOString() ?? null
 				})
 			);
 		} catch (error) {
@@ -131,7 +122,6 @@
 			if (inputs.tags?.length) $form.tags = inputs.tags;
 			if (inputs.startDate) $form.startDate = new Date(inputs.startDate);
 			if (inputs.endDate) $form.endDate = new Date(inputs.endDate);
-			if (inputs.collection) $form.collection = inputs.collection;
 		} catch (error) {
 			console.error('Failed to restore search inputs:', error);
 		}
@@ -139,7 +129,7 @@
 
 	// Keeps the last result grid around across a reload too, so the page isn't
 	// blank again until the next search.
-	function persistLastResults(results: SearchResult[]) {
+	function persistLastResults(results: SearchHit[]) {
 		if (!browser) return;
 		try {
 			localStorage.setItem(LAST_RESULTS_STORAGE_KEY, JSON.stringify(results));
@@ -153,7 +143,7 @@
 		try {
 			const raw = localStorage.getItem(LAST_RESULTS_STORAGE_KEY);
 			if (!raw) return;
-			const results: SearchResult[] = JSON.parse(raw);
+			const results: SearchHit[] = JSON.parse(raw);
 			if (results.length > 0) {
 				searchResults = results;
 				hasSearched = true;
@@ -179,19 +169,17 @@
 		});
 	});
 
-	// Re-persists search inputs whenever tags/dates/collection change.
+	// Re-persists search inputs whenever tags/dates change.
 	$effect(() => {
 		persistSearchInputs();
 	});
 
 	// Save search results to history
-	async function saveToHistory(results: SearchResult[], searchParams?: Record<string, unknown>) {
+	async function saveToHistory(results: SearchHit[], searchParams?: Record<string, unknown>) {
 		if (!browser || results.length === 0) return;
 
 		try {
-			// result.img is already raw base64 (see SearchResultCell/DetailsModal,
-			// which both render it directly as `data:image/png;base64,${img}`) -
-			// there is no separate image URL to fetch here.
+			// Results only hold thumbnail URLs, so history entries stay small.
 			const historyEntry: SearchHistoryEntry = {
 				id: crypto.randomUUID(),
 				timestamp: Date.now(),
@@ -226,49 +214,44 @@
 			let response: Response;
 
 			if ($form.searchType === 'tags') {
-				if (!$form.tags?.length) {
+				const q = textQuery($form.tags ?? []);
+				if (!q) {
 					throw new Error('No tags provided for tag search');
 				}
-
-				const requestBody = {
-					tags: $form.tags,
-					collection: $form.collection,
-					posted_before: $form.endDate?.toISOString(),
-					posted_after: $form.startDate?.toISOString()
-				};
-
-				response = await fetch('/api/search/tags', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(requestBody)
-				});
-			} else {
-				if (!$form.image) {
-					throw new Error('No image provided for image search');
+				if (q.length > MAX_QUERY_CHARS) {
+					throw new Error(`Tags must be at most ${MAX_QUERY_CHARS} characters in total`);
 				}
 
-				const searchParams = {
-					collection: $form.collection,
-					posted_before: $form.endDate?.toISOString(),
-					posted_after: $form.startDate?.toISOString()
-				};
+				response = await fetch('/api/search/text', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ q })
+				});
+			} else {
+				const kind = $form.searchType;
+				const upload = kind === 'video' ? $form.video : $form.image;
+				if (!upload) {
+					throw new Error(`No ${kind} provided for ${kind} search`);
+				}
+				if (upload.size > MAX_UPLOAD_BYTES) {
+					throw new Error('Please select a file smaller than 25 MB.');
+				}
 
 				const body = new FormData();
-				body.append('image', $form.image);
-				body.append('params', JSON.stringify(searchParams));
+				body.append('file', upload);
 
-				response = await fetch('/api/search/images', {
+				response = await fetch(`/api/search/${kind}`, {
 					method: 'POST',
 					body
 				});
 			}
 
 			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(`Search failed: ${errorText}`);
+				throw new Error(`Search failed: ${await errorMessage(response)}`);
 			}
 
-			const results: SearchResult[] = await response.json();
+			const hits: SearchHit[] = await response.json();
+			const results = filterByDate(hits, $form.startDate, $form.endDate);
 			searchResults = results;
 			hasSearched = true;
 			haptic(results.length > 0 ? 'success' : 'medium');
@@ -278,7 +261,7 @@
 			await saveToHistory(results, {
 				searchType: $form.searchType,
 				imageFileName: $form.image?.name || '',
-				collection: $form.collection
+				videoFileName: $form.video?.name || ''
 			});
 		} catch (error) {
 			searchError = error instanceof Error ? error.message : 'Search failed';
@@ -307,13 +290,30 @@
 		haptic('light');
 	};
 
-	function handleFileChange(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const file = target.files?.[0];
-		if (file) {
+	// Images go through the crop picker first; videos are searched as a whole
+	// (viz-rs extracts the scene frames itself). One upload replaces the other.
+	function acceptFile(file: File) {
+		if (file.type.startsWith('video/')) {
+			clearImage();
+			rawImageFile = null;
+			$form.video = file;
+			haptic('light');
+		} else {
+			$form.video = undefined;
 			rawImageFile = file;
 			cropPickerOpen = true;
 		}
+	}
+
+	function clearVideo() {
+		$form.video = undefined;
+		if (fileInput) fileInput.value = '';
+	}
+
+	function handleFileChange(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (file) acceptFile(file);
 	}
 
 	function handleDrag(e: DragEvent) {
@@ -332,8 +332,7 @@
 			const dt = new DataTransfer();
 			dt.items.add(file);
 			fileInput.files = dt.files;
-			rawImageFile = file;
-			cropPickerOpen = true;
+			acceptFile(file);
 		}
 	}
 
@@ -387,15 +386,17 @@
 
 	// Derived reactive values using runes
 	const hasImage = $derived(!!$form.image);
-	const selectedFileName = $derived($form.image?.name || '');
+	const hasVideo = $derived(!!$form.video);
+	const hasMedia = $derived(hasImage || hasVideo);
+	const selectedFileName = $derived($form.video?.name || $form.image?.name || '');
 	// Falls back to the already-cropped image so "adjust crop" still works
 	// after a reload, when only the cropped result was persisted.
 	const cropSourceFile = $derived(rawImageFile ?? $form.image ?? null);
 
-	// Tag input and image upload sit side by side now (no mode toggle) - either
+	// Tag input and media upload sit side by side now (no mode toggle) - either
 	// one satisfies search readiness.
-	const canSearch = $derived(() => hasImage || ($form.tags?.length || 0) > 0);
-	const missingBoth = $derived(showValidationError && !hasImage && ($form.tags?.length || 0) === 0);
+	const canSearch = $derived(() => hasMedia || ($form.tags?.length || 0) > 0);
+	const missingBoth = $derived(showValidationError && !hasMedia && ($form.tags?.length || 0) === 0);
 
 	// True only while there's nothing to show yet - no restored last-search
 	// results, and no search in flight. Drives the centered "hero" placement;
@@ -421,10 +422,12 @@
 		});
 	});
 
-	// Tag input and image upload are both visible at once; the backend only
-	// supports one mode per request, so an attached image takes priority.
+	// Tag input and media upload are both visible at once; the backend only
+	// supports one mode per request, so an attached video or image takes priority.
 	$effect(() => {
-		if (hasImage) {
+		if (hasVideo) {
+			$form.searchType = 'video';
+		} else if (hasImage) {
 			$form.searchType = 'image';
 		} else if (($form.tags?.length || 0) > 0) {
 			$form.searchType = 'tags';
@@ -447,9 +450,7 @@
 	>
 		<div class="flex h-full flex-col items-center justify-end px-4 pb-8 text-center">
 			<h1 class="editorial-title text-base-content text-4xl sm:text-5xl">MN Viz</h1>
-			<p class="text-base-content/60 mt-3 text-sm">
-				Search the collection by tags or a reference image.
-			</p>
+			<p class="text-base-content/60 mt-3 text-sm">Search by tags, a reference image or a video.</p>
 		</div>
 	</div>
 
@@ -487,23 +488,30 @@
 						<IconButton
 							type="button"
 							size="lg"
-							icon={hasImage ? FluentCrop24Regular : FluentImage24Regular}
-							label={hasImage
-								? `Adjust image crop (${selectedFileName})`
-								: 'Upload an image to search'}
-							variant={hasImage ? 'primary' : 'subtle'}
+							icon={hasVideo
+								? FluentVideo24Regular
+								: hasImage
+									? FluentCrop24Regular
+									: FluentImage24Regular}
+							label={hasVideo
+								? `Replace video (${selectedFileName})`
+								: hasImage
+									? `Adjust image crop (${selectedFileName})`
+									: 'Upload an image or video to search'}
+							variant={hasMedia ? 'primary' : 'subtle'}
 							onclick={() => (hasImage ? (cropPickerOpen = true) : initiateImageUpload())}
 							style={missingBoth ? 'box-shadow: 0 0 0 2px var(--color-error)' : undefined}
 						/>
-						{#if hasImage}
+						{#if hasMedia}
 							<button
 								type="button"
 								onclick={(e) => {
 									e.stopPropagation();
-									clearImage();
+									if (hasVideo) clearVideo();
+									else clearImage();
 								}}
 								class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] leading-none text-white"
-								aria-label="Remove image"
+								aria-label={hasVideo ? 'Remove video' : 'Remove image'}
 							>
 								×
 							</button>
@@ -513,7 +521,7 @@
 					<input
 						bind:this={fileInput}
 						type="file"
-						accept="image/*"
+						accept="image/*,video/*"
 						class="hidden"
 						onchange={handleFileChange}
 					/>
@@ -531,18 +539,11 @@
 					{/if}
 				</div>
 				{#if showValidationError && missingBoth}
-					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image to search.</p>
+					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image or video to search.</p>
 				{/if}
 
-				<!-- Row 2: collection + date range -->
+				<!-- Row 2: date range (applied to the results' post dates) -->
 				<div class="flex items-center gap-1.5">
-					<div class="w-32 min-w-0 shrink-0">
-						<CollectionSelector
-							bind:selectedCollection={$form.collection}
-							collections={data.meta?.datasets ?? {}}
-						/>
-					</div>
-
 					<div class="min-w-0 flex-1">
 						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
 					</div>
@@ -574,16 +575,11 @@
 				<div class="text-base-content/70 text-sm">
 					Found {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
 				</div>
-				<div class="text-base-content/60 text-xs">
-					Total: {Object.values(data.meta?.datasets || {})
-						.reduce((a, b) => a + b, 0)
-						.toLocaleString()} items
-				</div>
 			</div>
 			<div
 				class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
 			>
-				{#each searchResults as result, index (result.chat_id + '/' + result.msg_id)}
+				{#each searchResults as result, index (hitKey(result))}
 					<SearchResultCell {result} onclick={() => showModal(index)} />
 				{/each}
 			</div>
@@ -594,7 +590,7 @@
 				<div class="text-4xl opacity-20">🔍</div>
 				<h3 class="editorial-title text-base-content mt-4 text-lg">No matches found</h3>
 				<p class="text-base-content/60 mt-2 text-sm">
-					Try different tags, a wider date range, or another collection.
+					Try different tags, a wider date range, or another image.
 				</p>
 			</div>
 		</div>

@@ -1,147 +1,91 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import type { TagSearchRequest } from '$lib/TagSearchRequest';
-import type { ImageSearchParams } from '$lib/ImageSearchParams';
-import type { MetaResponse } from '$lib/MetaResponse';
-import { searchFormSchema } from './schema';
+import { MAX_QUERY_CHARS, searchFormSchema } from './schema';
 import { message, superValidate } from 'sveltekit-superforms/server';
 
 import { valibot } from 'sveltekit-superforms/adapters';
-import type { SearchResult } from '$lib/SearchResult';
+import type { SearchHit } from '$lib/SearchHit';
 import { backendFetch } from '$lib/server/backend';
+import { errorMessage, filterByDate, textQuery } from '$lib/search';
 
 export const load: PageServerLoad = async () => {
-	let meta: MetaResponse | null = null;
-
-	try {
-		// Fetch available collections from the meta endpoint
-
-		const response = await backendFetch('/meta');
-
-		if (response.ok) {
-			meta = await response.json();
-		}
-	} catch (error) {
-		console.error('Failed to fetch collections:', error);
-	}
-
 	const form = await superValidate(valibot(searchFormSchema));
-
-	return { form, meta, searchResults: [] };
+	return { form, searchResults: [] };
 };
 
+// Fallback for form posts without JavaScript; the page normally searches via
+// the /api/search/* proxy routes instead.
 export const actions = {
-	default: async ({ request }) => {
+	default: async ({ request, getClientAddress }) => {
 		const form = await superValidate(request, valibot(searchFormSchema));
 
-		console.log(form);
-
 		if (!form.valid) {
-			// Return { form } and things will just work.
-
 			return fail(400, { form });
 		}
 
 		try {
 			let response: Response;
 
-			let body: FormData | string;
-
 			if (form.data.searchType === 'tags') {
-				// Tag-based search
-
-				if (!form.data.tags?.length) {
+				const q = textQuery(form.data.tags ?? []);
+				if (!q) {
+					return fail(400, { error: 'No tags provided for tag search' });
+				}
+				if (q.length > MAX_QUERY_CHARS) {
 					return fail(400, {
-						error: 'No tags provided for tag search'
+						error: `Tags must be at most ${MAX_QUERY_CHARS} characters in total`
 					});
 				}
 
-				const requestBody: TagSearchRequest = {
-					tags: form.data.tags,
-
-					collection: form.data.collection,
-
-					posted_before: form.data.endDate?.toISOString(),
-
-					posted_after: form.data.startDate?.toISOString()
-				};
-
-				console.log('Posting tag search request...', requestBody);
-
-				response = await backendFetch('/search/tags', {
-					method: 'POST',
-
-					headers: {
-						'Content-Type': 'application/json'
+				response = await backendFetch(
+					'/api/search/text',
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ q })
 					},
-
-					body: JSON.stringify(requestBody)
-				});
+					getClientAddress()
+				);
 			} else {
-				// Image-based search
-
-				if (!form.data.image) {
-					return fail(400, {
-						error: 'No image provided for image search'
-					});
+				const kind = form.data.searchType;
+				const upload = kind === 'video' ? form.data.video : form.data.image;
+				if (!upload) {
+					return fail(400, { error: `No ${kind} provided for ${kind} search` });
 				}
 
-				const searchParams: ImageSearchParams = {
-					collection: form.data.collection,
-
-					posted_before: form.data.endDate?.toISOString(),
-
-					posted_after: form.data.startDate?.toISOString()
-				};
-
-				body = new FormData();
-
-				body.append('image', form.data.image);
-
-				body.append('params', JSON.stringify(searchParams));
-
-				console.log('Posting image search request...', body, searchParams);
-
-				response = await backendFetch('/search/images', {
-					method: 'POST',
-
-					body
-				});
+				const body = new FormData();
+				body.append('file', upload);
+				response = await backendFetch(
+					`/api/search/${kind}`,
+					{ method: 'POST', body },
+					getClientAddress()
+				);
 			}
-
-			console.log('Response status:', response.status);
 
 			if (!response.ok) {
-				const errorText = await response.text();
-
-				return fail(400, {
-					error: `Failed to search. Server response: ${errorText}`
+				return fail(response.status === 429 ? 429 : 400, {
+					error: `Failed to search: ${await errorMessage(response)}`
 				});
 			}
 
-			const data: SearchResult[] = await response.json();
-			console.log('Search results received:', data.length, 'items');
+			const hits: SearchHit[] = await response.json();
+			const searchResults = filterByDate(hits, form.data.startDate, form.data.endDate);
 
 			return message(form, {
 				success: true,
-
-				searchResults: data,
-
+				searchResults,
 				searchParams: {
 					searchType: form.data.searchType,
 					imageFileName: form.data.image?.name || '',
+					videoFileName: form.data.video?.name || '',
 					tags: form.data.tags,
 					startDate: form.data.startDate || '',
-					endDate: form.data.endDate || '',
-					collection: form.data.collection
+					endDate: form.data.endDate || ''
 				}
 			});
 		} catch (error) {
 			console.error('Search error:', error);
-
-			return fail(500, {
-				error: error instanceof Error ? error.message : 'Failed to perform search'
-			});
+			return fail(500, { error: 'Failed to perform search' });
 		}
 	}
 } satisfies Actions;

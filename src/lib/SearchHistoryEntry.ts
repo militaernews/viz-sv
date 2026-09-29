@@ -1,9 +1,9 @@
-import type { SearchResult } from './SearchResult';
+import type { SearchHit } from './SearchHit';
 
 export interface SearchHistoryEntry {
 	id: string;
 	timestamp: number;
-	results: SearchResult[];
+	results: SearchHit[];
 	searchParams: {
 		tags: string[];
 		startDate: string;

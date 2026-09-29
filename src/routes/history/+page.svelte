@@ -13,18 +13,18 @@
 	import FluentVideo24Regular from '~icons/fluent/video-24-regular';
 
 	// Types
-	import type { SearchResult } from '$lib/SearchResult';
+	import { hitKey, type SearchHit } from '$lib/SearchHit';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
 
 	// State
 	let searchHistory = $state<SearchHistoryEntry[]>([]);
 	let selectedEntry = $state<SearchHistoryEntry | null>(null);
 	let detailsOpen = $state(false);
-	let details: SearchResult | null = $state(null);
+	let details: SearchHit | null = $state(null);
 	let isLoading = $state(true);
 
 	// Local storage key
-	const HISTORY_STORAGE_KEY = 'search_history_v2';
+	const HISTORY_STORAGE_KEY = 'search_history_v3';
 
 	// Load history from localStorage
 	// Debug version of loadHistory function
@@ -130,7 +130,7 @@
 	}
 
 	// Show modal with result details
-	function showModal(result: SearchResult) {
+	function showModal(result: SearchHit) {
 		details = result;
 		detailsOpen = true;
 	}
@@ -312,7 +312,7 @@
 							</div>
 
 							<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-								{#each selectedEntry.results as result (result.chat_id + '/' + result.msg_id)}
+								{#each selectedEntry.results as result (hitKey(result))}
 									<div class="group">
 										<SearchResultCell
 											{result}
