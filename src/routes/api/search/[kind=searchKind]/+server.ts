@@ -1,7 +1,7 @@
 import { proxyToBackend } from '$lib/server/backend';
 import type { RequestHandler } from './$types';
 
-// Same-origin proxy for POST /api/search/{image,video,text}, so the browser only
+// Same-origin proxy for POST /api/search/{image,text}, so the browser only
 // ever talks to this SvelteKit server - it never learns viz-rs's address or its
 // API key. Bodies (multipart field "file", or JSON {"q"}) pass through unchanged.
 export const POST: RequestHandler = async ({ request, params, getClientAddress }) => {

@@ -9,6 +9,5 @@ export interface SearchHistoryEntry {
 		startDate: string;
 		endDate: string;
 		imageFileName?: string;
-		videoFileName?: string;
 	};
 }

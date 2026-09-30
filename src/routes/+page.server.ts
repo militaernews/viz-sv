@@ -47,16 +47,15 @@ export const actions = {
 					getClientAddress()
 				);
 			} else {
-				const kind = form.data.searchType;
-				const upload = kind === 'video' ? form.data.video : form.data.image;
+				const upload = form.data.image;
 				if (!upload) {
-					return fail(400, { error: `No ${kind} provided for ${kind} search` });
+					return fail(400, { error: 'No image provided for image search' });
 				}
 
 				const body = new FormData();
 				body.append('file', upload);
 				response = await backendFetch(
-					`/api/search/${kind}`,
+					'/api/search/image',
 					{ method: 'POST', body },
 					getClientAddress()
 				);
@@ -77,7 +76,6 @@ export const actions = {
 				searchParams: {
 					searchType: form.data.searchType,
 					imageFileName: form.data.image?.name || '',
-					videoFileName: form.data.video?.name || '',
 					tags: form.data.tags,
 					startDate: form.data.startDate || '',
 					endDate: form.data.endDate || ''

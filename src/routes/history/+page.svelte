@@ -10,7 +10,6 @@
 	import FluentImage24Regular from '~icons/fluent/image-24-regular';
 	import FluentTag24Regular from '~icons/fluent/tag-24-regular';
 	import FluentCalendar24Regular from '~icons/fluent/calendar-24-regular';
-	import FluentVideo24Regular from '~icons/fluent/video-24-regular';
 
 	// Types
 	import { hitKey, type SearchHit } from '$lib/SearchHit';
@@ -265,13 +264,6 @@
 													<div class="flex items-center gap-1">
 														<FluentImage24Regular class="h-3 w-3" />
 														{entry.searchParams.imageFileName}
-													</div>
-												{/if}
-
-												{#if entry.searchParams.videoFileName}
-													<div class="flex items-center gap-1">
-														<FluentVideo24Regular class="h-3 w-3" />
-														{entry.searchParams.videoFileName}
 													</div>
 												{/if}
 

@@ -7,11 +7,10 @@
 	import FluentSearch24Regular from '~icons/fluent/search-24-regular';
 	import FluentImage24Regular from '~icons/fluent/image-24-regular';
 	import FluentCrop24Regular from '~icons/fluent/crop-24-regular';
-	import FluentVideo24Regular from '~icons/fluent/video-24-regular';
 	import { hitKey, type SearchHit } from '$lib/SearchHit';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
 	import { errorMessage, filterByDate, textQuery } from '$lib/search';
-	import { MAX_QUERY_CHARS, MAX_UPLOAD_BYTES } from './schema';
+	import { authorizedExtensions, MAX_QUERY_CHARS, MAX_UPLOAD_BYTES } from './schema';
 	import DateFilter from '$lib/component/DateFilter.svelte';
 	import TagsInput from '$lib/component/TagsInput.svelte';
 	import Button from '$lib/component/ui/Button.svelte';
@@ -96,7 +95,7 @@
 	}
 
 	// Keeps the tag/date inputs around across a reload, same as the uploaded
-	// image. Videos are not persisted; they are too large for localStorage.
+	// image.
 	function persistSearchInputs() {
 		if (!browser) return;
 		try {
@@ -228,10 +227,9 @@
 					body: JSON.stringify({ q })
 				});
 			} else {
-				const kind = $form.searchType;
-				const upload = kind === 'video' ? $form.video : $form.image;
+				const upload = $form.image;
 				if (!upload) {
-					throw new Error(`No ${kind} provided for ${kind} search`);
+					throw new Error('No image provided for image search');
 				}
 				if (upload.size > MAX_UPLOAD_BYTES) {
 					throw new Error('Please select a file smaller than 25 MB.');
@@ -240,7 +238,7 @@
 				const body = new FormData();
 				body.append('file', upload);
 
-				response = await fetch(`/api/search/${kind}`, {
+				response = await fetch('/api/search/image', {
 					method: 'POST',
 					body
 				});
@@ -260,8 +258,7 @@
 			// Save to history
 			await saveToHistory(results, {
 				searchType: $form.searchType,
-				imageFileName: $form.image?.name || '',
-				videoFileName: $form.video?.name || ''
+				imageFileName: $form.image?.name || ''
 			});
 		} catch (error) {
 			searchError = error instanceof Error ? error.message : 'Search failed';
@@ -290,24 +287,17 @@
 		haptic('light');
 	};
 
-	// Images go through the crop picker first; videos are searched as a whole
-	// (viz-rs extracts the scene frames itself). One upload replaces the other.
+	// Only images can be searched; they go through the crop picker first.
 	function acceptFile(file: File) {
-		if (file.type.startsWith('video/')) {
-			clearImage();
-			rawImageFile = null;
-			$form.video = file;
-			haptic('light');
-		} else {
-			$form.video = undefined;
-			rawImageFile = file;
-			cropPickerOpen = true;
+		if (!(authorizedExtensions as readonly string[]).includes(file.type)) {
+			searchError = 'Please select a JPEG, PNG, WebP or GIF image.';
+			if (fileInput) fileInput.value = '';
+			haptic('error');
+			return;
 		}
-	}
-
-	function clearVideo() {
-		$form.video = undefined;
-		if (fileInput) fileInput.value = '';
+		searchError = null;
+		rawImageFile = file;
+		cropPickerOpen = true;
 	}
 
 	function handleFileChange(event: Event) {
@@ -386,17 +376,15 @@
 
 	// Derived reactive values using runes
 	const hasImage = $derived(!!$form.image);
-	const hasVideo = $derived(!!$form.video);
-	const hasMedia = $derived(hasImage || hasVideo);
-	const selectedFileName = $derived($form.video?.name || $form.image?.name || '');
+	const selectedFileName = $derived($form.image?.name || '');
 	// Falls back to the already-cropped image so "adjust crop" still works
 	// after a reload, when only the cropped result was persisted.
 	const cropSourceFile = $derived(rawImageFile ?? $form.image ?? null);
 
 	// Tag input and media upload sit side by side now (no mode toggle) - either
 	// one satisfies search readiness.
-	const canSearch = $derived(() => hasMedia || ($form.tags?.length || 0) > 0);
-	const missingBoth = $derived(showValidationError && !hasMedia && ($form.tags?.length || 0) === 0);
+	const canSearch = $derived(() => hasImage || ($form.tags?.length || 0) > 0);
+	const missingBoth = $derived(showValidationError && !hasImage && ($form.tags?.length || 0) === 0);
 
 	// True only while there's nothing to show yet - no restored last-search
 	// results, and no search in flight. Drives the centered "hero" placement;
@@ -423,11 +411,9 @@
 	});
 
 	// Tag input and media upload are both visible at once; the backend only
-	// supports one mode per request, so an attached video or image takes priority.
+	// supports one mode per request, so an attached image takes priority.
 	$effect(() => {
-		if (hasVideo) {
-			$form.searchType = 'video';
-		} else if (hasImage) {
+		if (hasImage) {
 			$form.searchType = 'image';
 		} else if (($form.tags?.length || 0) > 0) {
 			$form.searchType = 'tags';
@@ -450,7 +436,7 @@
 	>
 		<div class="flex h-full flex-col items-center justify-end px-4 pb-8 text-center">
 			<h1 class="editorial-title text-base-content text-4xl sm:text-5xl">MN Viz</h1>
-			<p class="text-base-content/60 mt-3 text-sm">Search by tags, a reference image or a video.</p>
+			<p class="text-base-content/60 mt-3 text-sm">Search by tags or a reference image.</p>
 		</div>
 	</div>
 
@@ -488,30 +474,23 @@
 						<IconButton
 							type="button"
 							size="lg"
-							icon={hasVideo
-								? FluentVideo24Regular
-								: hasImage
-									? FluentCrop24Regular
-									: FluentImage24Regular}
-							label={hasVideo
-								? `Replace video (${selectedFileName})`
-								: hasImage
-									? `Adjust image crop (${selectedFileName})`
-									: 'Upload an image or video to search'}
-							variant={hasMedia ? 'primary' : 'subtle'}
+							icon={hasImage ? FluentCrop24Regular : FluentImage24Regular}
+							label={hasImage
+								? `Adjust image crop (${selectedFileName})`
+								: 'Upload an image to search'}
+							variant={hasImage ? 'primary' : 'subtle'}
 							onclick={() => (hasImage ? (cropPickerOpen = true) : initiateImageUpload())}
 							style={missingBoth ? 'box-shadow: 0 0 0 2px var(--color-error)' : undefined}
 						/>
-						{#if hasMedia}
+						{#if hasImage}
 							<button
 								type="button"
 								onclick={(e) => {
 									e.stopPropagation();
-									if (hasVideo) clearVideo();
-									else clearImage();
+									clearImage();
 								}}
 								class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] leading-none text-white"
-								aria-label={hasVideo ? 'Remove video' : 'Remove image'}
+								aria-label="Remove image"
 							>
 								×
 							</button>
@@ -521,7 +500,7 @@
 					<input
 						bind:this={fileInput}
 						type="file"
-						accept="image/*,video/*"
+						accept={authorizedExtensions.join(',')}
 						class="hidden"
 						onchange={handleFileChange}
 					/>
@@ -539,7 +518,7 @@
 					{/if}
 				</div>
 				{#if showValidationError && missingBoth}
-					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image or video to search.</p>
+					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image to search.</p>
 				{/if}
 
 				<!-- Row 2: date range (applied to the results' post dates) -->

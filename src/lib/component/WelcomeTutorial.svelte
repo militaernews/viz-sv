@@ -25,7 +25,7 @@
 
 <BottomSheet bind:open title="Welcome">
 	<div class="space-y-4">
-		<p class="text-base-content/80 text-sm">Search by tags, a reference image or a video.</p>
+		<p class="text-base-content/80 text-sm">Search by tags or a reference image.</p>
 		<ul class="text-base-content/80 space-y-3 text-sm">
 			<li class="flex gap-3">
 				<FluentTag24Regular class="text-primary h-5 w-5 shrink-0" />
@@ -37,8 +37,8 @@
 			<li class="flex gap-3">
 				<FluentImage24Regular class="text-primary h-5 w-5 shrink-0" />
 				<span
-					>Upload or drop a picture or a video to search by. Each result links to the earliest
-					original post and its backup copy.</span
+					>Upload or drop a picture to search by. Each result links to the earliest original post
+					and its backup copy.</span
 				>
 			</li>
 			<li class="flex gap-3">
