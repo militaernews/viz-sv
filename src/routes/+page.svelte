@@ -10,7 +10,12 @@
 	import { hitKey, type SearchHit } from '$lib/SearchHit';
 	import type { SearchHistoryEntry } from '$lib/SearchHistoryEntry';
 	import { errorMessage, filterByDate, textQuery } from '$lib/search';
-	import { authorizedExtensions, MAX_QUERY_CHARS, MAX_UPLOAD_BYTES } from './schema';
+	import {
+		authorizedExtensions,
+		MAX_QUERY_CHARS,
+		MAX_UPLOAD_BYTES,
+		UPLOAD_TOO_LARGE_MESSAGE
+	} from './schema';
 	import DateFilter from '$lib/component/DateFilter.svelte';
 	import TagsInput from '$lib/component/TagsInput.svelte';
 	import Button from '$lib/component/ui/Button.svelte';
@@ -232,7 +237,7 @@
 					throw new Error('No image provided for image search');
 				}
 				if (upload.size > MAX_UPLOAD_BYTES) {
-					throw new Error('Please select a file smaller than 25 MB.');
+					throw new Error(UPLOAD_TOO_LARGE_MESSAGE);
 				}
 
 				const body = new FormData();

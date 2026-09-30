@@ -15,8 +15,11 @@ import {
 
 export const authorizedExtensions = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
 
-// viz-rs rejects uploads above API_MAX_UPLOAD_BYTES (25 MiB by default).
-export const MAX_UPLOAD_BYTES = 1024 * 1024 * 25;
+// Vercel rejects function request bodies above 4.5 MB, so stay below that including the
+// multipart overhead (viz-rs itself would accept up to API_MAX_UPLOAD_BYTES, 25 MiB).
+export const MAX_UPLOAD_BYTES = 1024 * 1024 * 4;
+export const UPLOAD_TOO_LARGE_MESSAGE =
+	'Please select an image smaller than 4 MB, or crop it further.';
 export const MAX_QUERY_CHARS = 200;
 
 export const searchFormSchema = object({
@@ -24,7 +27,7 @@ export const searchFormSchema = object({
 		pipe(
 			file('Please select an image file.'),
 			mimeType(authorizedExtensions, 'Please select a JPEG, PNG, WebP or GIF file.'),
-			maxSize(MAX_UPLOAD_BYTES, 'Please select a file smaller than 25 MB.')
+			maxSize(MAX_UPLOAD_BYTES, UPLOAD_TOO_LARGE_MESSAGE)
 		)
 	),
 	startDate: optional(date()),
