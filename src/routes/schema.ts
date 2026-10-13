@@ -33,6 +33,7 @@ export const searchFormSchema = object({
 	startDate: optional(date()),
 	endDate: optional(date()),
 	tags: optional(array(string())),
+	collection: string(),
 	searchType: union([literal('image'), literal('tags')], 'Search type must be "image" or "tags"')
 });
 

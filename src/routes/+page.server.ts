@@ -5,13 +5,28 @@ import { message, superValidate } from 'sveltekit-superforms/server';
 
 import { valibot } from 'sveltekit-superforms/adapters';
 import type { SearchHit } from '$lib/SearchHit';
+import type { CollectionInfo } from '$lib/CollectionInfo';
 import { backendFetch } from '$lib/server/backend';
 import { errorMessage, filterByDate, textQuery } from '$lib/search';
 
 export const load: PageServerLoad = async () => {
 	const form = await superValidate(valibot(searchFormSchema));
-	return { form, searchResults: [] };
+
+	let collections: CollectionInfo[] = [];
+	try {
+		const response = await backendFetch('/api/collections');
+		if (response.ok) collections = await response.json();
+	} catch (error) {
+		console.error('Failed to fetch collections:', error);
+	}
+
+	return { form, collections, searchResults: [] };
 };
+
+/** Empty string when no collection is selected, so it drops out of the query string. */
+function collectionQuery(collection: string | undefined): string {
+	return collection ? `?collection=${encodeURIComponent(collection)}` : '';
+}
 
 // Fallback for form posts without JavaScript; the page normally searches via
 // the /api/search/* proxy routes instead.
@@ -38,7 +53,7 @@ export const actions = {
 				}
 
 				response = await backendFetch(
-					'/api/search/text',
+					`/api/search/text${collectionQuery(form.data.collection)}`,
 					{
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
@@ -55,7 +70,7 @@ export const actions = {
 				const body = new FormData();
 				body.append('file', upload);
 				response = await backendFetch(
-					'/api/search/image',
+					`/api/search/image${collectionQuery(form.data.collection)}`,
 					{ method: 'POST', body },
 					getClientAddress()
 				);
@@ -78,7 +93,8 @@ export const actions = {
 					imageFileName: form.data.image?.name || '',
 					tags: form.data.tags,
 					startDate: form.data.startDate || '',
-					endDate: form.data.endDate || ''
+					endDate: form.data.endDate || '',
+					collection: form.data.collection
 				}
 			});
 		} catch (error) {

@@ -17,6 +17,7 @@
 		UPLOAD_TOO_LARGE_MESSAGE
 	} from './schema';
 	import DateFilter from '$lib/component/DateFilter.svelte';
+	import CollectionSelector from '$lib/component/CollectionSelector.svelte';
 	import TagsInput from '$lib/component/TagsInput.svelte';
 	import Button from '$lib/component/ui/Button.svelte';
 	import IconButton from '$lib/component/ui/IconButton.svelte';
@@ -56,6 +57,11 @@
 			reader.onerror = reject;
 			reader.readAsDataURL(file);
 		});
+	}
+
+	/** Empty string when no collection is selected, so it drops out of the query string. */
+	function collectionQuery(collection: string | undefined): string {
+		return collection ? `?collection=${encodeURIComponent(collection)}` : '';
 	}
 
 	function dataUrlToFile(dataUrl: string, name: string, type: string): File {
@@ -109,7 +115,8 @@
 				JSON.stringify({
 					tags: $form.tags ?? [],
 					startDate: $form.startDate?.toISOString() ?? null,
-					endDate: $form.endDate?.toISOString() ?? null
+					endDate: $form.endDate?.toISOString() ?? null,
+					collection: $form.collection ?? null
 				})
 			);
 		} catch (error) {
@@ -126,6 +133,7 @@
 			if (inputs.tags?.length) $form.tags = inputs.tags;
 			if (inputs.startDate) $form.startDate = new Date(inputs.startDate);
 			if (inputs.endDate) $form.endDate = new Date(inputs.endDate);
+			if (inputs.collection) $form.collection = inputs.collection;
 		} catch (error) {
 			console.error('Failed to restore search inputs:', error);
 		}
@@ -192,7 +200,8 @@
 					...searchParams,
 					tags: $form.tags ?? [],
 					startDate: $form.startDate?.toISOString() ?? '',
-					endDate: $form.endDate?.toISOString() ?? ''
+					endDate: $form.endDate?.toISOString() ?? '',
+					collection: $form.collection ?? ''
 				}
 			};
 
@@ -226,7 +235,7 @@
 					throw new Error(`Tags must be at most ${MAX_QUERY_CHARS} characters in total`);
 				}
 
-				response = await fetch('/api/search/text', {
+				response = await fetch(`/api/search/text${collectionQuery($form.collection)}`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ q })
@@ -243,7 +252,7 @@
 				const body = new FormData();
 				body.append('file', upload);
 
-				response = await fetch('/api/search/image', {
+				response = await fetch(`/api/search/image${collectionQuery($form.collection)}`, {
 					method: 'POST',
 					body
 				});
@@ -526,8 +535,15 @@
 					<p class="-mt-1 text-xs text-red-400">Add a tag or upload an image to search.</p>
 				{/if}
 
-				<!-- Row 2: date range (applied to the results' post dates) -->
+				<!-- Row 2: collection + date range (applied to the results' post dates) -->
 				<div class="flex items-center gap-1.5">
+					<div class="w-32 min-w-0 shrink-0">
+						<CollectionSelector
+							bind:selectedCollection={$form.collection}
+							collections={data.collections ?? []}
+						/>
+					</div>
+
 					<div class="min-w-0 flex-1">
 						<DateFilter bind:startDate={$form.startDate} bind:endDate={$form.endDate} />
 					</div>

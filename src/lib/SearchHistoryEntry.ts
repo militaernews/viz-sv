@@ -9,5 +9,6 @@ export interface SearchHistoryEntry {
 		startDate: string;
 		endDate: string;
 		imageFileName?: string;
+		collection?: string;
 	};
 }
