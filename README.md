@@ -1,38 +1,38 @@
-# sv
+# viz
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Reverse media search over Telegram channels: upload a photo (or type text) and find the earliest post of that media in an origin channel and in a backup channel.
 
-## Creating a project
+This repository holds both parts:
 
-If you're seeing this, you've probably already done this step. Congrats!
+| Folder | What | Stack |
+|---|---|---|
+| `/` (root) | Web app with the search UI; it proxies requests to the backend API | SvelteKit, Bun, deployed on Vercel |
+| [`backend/`](backend/) | Telegram ingest (watcher and backfill), CLIP embeddings, dhash, thumbnails and the search API | Rust (axum, grammers), Postgres, Qdrant, S3 |
 
-```bash
-# create a new project in the current directory
-npx sv create
+`backend/` used to be the separate `viz-rs` repository; its full commit history was moved here.
 
-# create a new project in my-app
-npx sv create my-app
+## Web app
+
+```sh
+bun install
+bun run dev
 ```
 
-## Developing
+Environment variables (server-side only):
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+| Variable | Description |
+|---|---|
+| `API_BASE_URL` | Base URL of the backend API (`backend/`, binary `api`) |
+| `BACKEND_API_KEY` | Shared key, sent as `x-api-key`; must match the backend's `BACKEND_API_KEY` |
 
-```bash
-npm run dev
+`bun run check` type-checks, `bun run lint` runs Prettier and ESLint, `bun run build` builds for production.
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+## Backend
+
+See [`backend/README.md`](backend/README.md) for the infrastructure, the CLIP models, ingesting channels and running the API. Everything there runs from inside `backend/`:
+
+```sh
+cd backend
+podman compose up -d
+cargo run --release --bin api
 ```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
