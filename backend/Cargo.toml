@@ -1,0 +1,39 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/ingest", "crates/api"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.94"
+
+[workspace.dependencies]
+viz-core = { path = "crates/core" }
+
+tokio = { version = "1.53.1", features = ["full"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+anyhow = "1.0.104"
+thiserror = "2.0.21"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid", "migrate", "macros"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+uuid = { version = "1.26.1", features = ["v4", "serde"] }
+image = "0.25.10"
+dotenvy = "0.15.7"
+tempfile = "3.27.0"
+futures = "0.3.34"
+qdrant-client = { version = "1.19.0", default-features = false }
+
+[profile.dev.package.sqlx-macros]
+opt-level = 3
+
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1

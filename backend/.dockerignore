@@ -1,0 +1,11 @@
+.git/
+/target/
+/models/
+/data/
+/weights/
+.env
+.env.*
+*.session
+*.session-*
+channels.toml
+NUL

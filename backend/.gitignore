@@ -1,0 +1,24 @@
+/qdrant_data
+/images
+
+
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+
+
+/target
+/*.session
+
+/.idea
+
+# Local model files, runtime data and channel seeds
+/models
+/data
+channels.toml
+/NUL
+rustfs.env
