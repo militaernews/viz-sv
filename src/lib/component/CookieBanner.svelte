@@ -8,8 +8,8 @@
 			body: 'By using this site, you agree with our use of cookies'
 		},
 		theme: {
-			primary: '#e6a527',
-			dark: '#14283f',
+			primary: '#2ec5ff',
+			dark: '#0d2648',
 			medium: '#a89e8e',
 			light: '#fff7e8'
 		}

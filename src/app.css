@@ -7,32 +7,31 @@
 	themes: false;
 }
 
-/* Editorial field ledger: midnight ink, parchment rules, restrained amber
-   signals. Mapped onto daisyUI's own theme tokens (rather than hardcoding
-   every component's colors) so every existing btn/input/card/badge/modal
-   picks it up automatically. */
+/* Radar palette, the same as the logo (brand/): deep navy surfaces, cyan signals and pale cyan
+   ink. Mapped onto daisyUI's own theme tokens (rather than hardcoding every component's colors) so
+   every existing btn/input/card/badge/modal picks it up automatically. */
 @plugin 'daisyui/theme' {
 	name: 'ledger';
 	default: true;
 	prefersdark: true;
 	color-scheme: dark;
 
-	--color-base-100: #14283f;
-	--color-base-200: #102239;
-	--color-base-300: #0d1d31;
-	--color-base-content: #fff7e8;
+	--color-base-100: #0d2648;
+	--color-base-200: #0a1f3d;
+	--color-base-300: #061a36;
+	--color-base-content: #e6f6ff;
 
-	--color-primary: #e6a527;
-	--color-primary-content: #172a45;
-	--color-secondary: #315d8d;
-	--color-secondary-content: #e1effa;
-	--color-accent: #8c709b;
-	--color-accent-content: #f0e7f5;
-	--color-neutral: #0e1d2f;
-	--color-neutral-content: #d9ccb7;
+	--color-primary: #2ec5ff;
+	--color-primary-content: #04152b;
+	--color-secondary: #1f6fae;
+	--color-secondary-content: #e6f6ff;
+	--color-accent: #9be7ff;
+	--color-accent-content: #04152b;
+	--color-neutral: #06142a;
+	--color-neutral-content: #9fb6c9;
 
-	--color-info: #3b82f6;
-	--color-info-content: #eff6ff;
+	--color-info: #2ec5ff;
+	--color-info-content: #04152b;
 	--color-success: #10b981;
 	--color-success-content: #ecfdf5;
 	--color-warning: #e6a527;
