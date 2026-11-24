@@ -1,0 +1,21 @@
+<!-- Icon fragment for the militaernews/tools brand generator: a photo under a magnifier, in a 512×512 box -->
+<g>
+	<g transform="rotate(-8 230 250)">
+		<rect x="110" y="140" width="250" height="200" rx="14" fill="#082a52"/>
+		<clipPath id="photo"><rect x="126" y="156" width="218" height="150" rx="6"/></clipPath>
+		<g clip-path="url(#photo)">
+			<rect x="126" y="156" width="218" height="150" fill="#0f4c81"/>
+			<circle cx="300" cy="196" r="20" fill="#9be7ff"/>
+			<path d="M126 306L196 222L246 274L276 246L344 306Z" fill="#2ec5ff" fill-opacity=".9"/>
+			<path d="M126 306L196 222L230 262L170 306Z" fill="#1f6fae"/>
+		</g>
+		<rect x="126" y="318" width="120" height="8" rx="3" fill="#9be7ff" fill-opacity=".7"/>
+		<rect x="110" y="140" width="250" height="200" rx="14" fill="none" stroke="#bdefff" stroke-width="5" filter="url(#glow)"/>
+	</g>
+	<circle cx="318" cy="306" r="74" fill="#061a36" fill-opacity=".55"/>
+	<circle cx="318" cy="306" r="74" fill="none" stroke="#bdefff" stroke-width="14" filter="url(#glow)"/>
+	<circle cx="318" cy="306" r="58" fill="none" stroke="#2ec5ff" stroke-opacity=".5" stroke-width="3"/>
+	<path d="M284 278Q294 256 318 252" fill="none" stroke="#f2fbff" stroke-opacity=".75" stroke-width="7" stroke-linecap="round"/>
+	<path d="M372 360L428 416" stroke="#bdefff" stroke-width="30" stroke-linecap="round" filter="url(#glow)"/>
+	<path d="M372 360L428 416" stroke="#2ec5ff" stroke-width="14" stroke-linecap="round"/>
+</g>

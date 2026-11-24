@@ -1,6 +1,6 @@
 {
-	"theme_color": "#8936FF",
-	"background_color": "#000000",
+	"theme_color": "#0e1d2f",
+	"background_color": "#0e1d2f",
 	"icons": [
 		{
 			"purpose": "maskable",
@@ -19,7 +19,7 @@
 	"display": "standalone",
 	"dir": "ltr",
 	"lang": "en",
-	"name": "NewsMix Image Reverse Search",
-	"short_name": "NM Image Reverse Search",
-	"description": "Search Images posted in Telegram news channels"
+	"name": "MN Viz: reverse image search",
+	"short_name": "MN Viz",
+	"description": "Find the earliest post of a picture in the Telegram news channels"
 }

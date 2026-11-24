@@ -21,7 +21,7 @@
 	<select
 		bind:value={selectedCollection}
 		name="collection"
-		class="field-control w-full min-w-0 rounded-full px-4 py-2 text-sm"
+		class="field-control w-full min-w-0 truncate rounded-full py-2 pr-9 pl-4 text-sm"
 	>
 		{#each sorted as { name, count } (name)}
 			<option value={name}>

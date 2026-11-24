@@ -2,6 +2,11 @@
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';
 
+/* daisyUI's components and color utilities (btn, bg-base-100, loading …); only the ledger theme below */
+@plugin 'daisyui' {
+	themes: false;
+}
+
 /* Editorial field ledger: midnight ink, parchment rules, restrained amber
    signals. Mapped onto daisyUI's own theme tokens (rather than hardcoding
    every component's colors) so every existing btn/input/card/badge/modal

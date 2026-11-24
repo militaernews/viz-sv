@@ -1,0 +1,7 @@
+{
+  "name": "VIZ",
+  "icon": "icon.svg",
+  "tagline": ["Reverse media search", "over Telegram channels."],
+  "tags": "FIND THE FIRST POST OF ANY PICTURE",
+  "out": "."
+}

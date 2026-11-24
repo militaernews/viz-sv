@@ -446,9 +446,16 @@
 	<div
 		class="overflow-hidden {readyForTransition
 			? 'transition-[height] duration-150 ease-in'
-			: ''} {heroMode ? 'h-[52vh]' : 'h-0'}"
+			: ''} {heroMode ? 'h-[34vh] sm:h-[40vh]' : 'h-0'}"
 	>
 		<div class="flex h-full flex-col items-center justify-end px-4 pb-8 text-center">
+			<img
+				src="/icon-512.png"
+				alt=""
+				width="96"
+				height="96"
+				class="mb-4 size-20 rounded-full sm:size-24"
+			/>
 			<h1 class="editorial-title text-base-content text-4xl sm:text-5xl">MN Viz</h1>
 			<p class="text-base-content/60 mt-3 text-sm">Search by tags or a reference image.</p>
 		</div>
@@ -537,7 +544,7 @@
 
 				<!-- Row 2: collection + date range (applied to the results' post dates) -->
 				<div class="flex items-center gap-1.5">
-					<div class="w-32 min-w-0 shrink-0">
+					<div class="w-36 min-w-0 shrink-0 sm:w-44">
 						<CollectionSelector
 							bind:selectedCollection={$form.collection}
 							collections={data.collections ?? []}
